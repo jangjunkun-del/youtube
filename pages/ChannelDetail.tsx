@@ -50,10 +50,12 @@ const formatNumber = (num: string | number) => {
 const formatKRW = (usdAmount: number, rate: number) => {
   const krw = usdAmount * rate;
   if (krw >= 100000000) {
-    return `약 ${(krw / 100000000).toFixed(1)}억원`;
+    const value = (krw / 100000000).toFixed(1);
+    return `약 ${value}억원`;
   }
   if (krw >= 10000) {
-    return `약 ${(krw / 10000).toFixed(0).toLocaleString()}만원`;
+    const manValue = Math.floor(krw / 10000);
+    return `약 ${manValue.toLocaleString()}만원`;
   }
   return `₩${Math.round(krw).toLocaleString()}`;
 };
