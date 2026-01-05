@@ -74,15 +74,23 @@ const Compare: React.FC = () => {
                 >
                   <img src={res.snippet.thumbnails.default.url} className="w-10 h-10 rounded-full" />
                   <div className="flex-1">
-                    <a 
-                      href={`https://www.youtube.com/channel/${res.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold text-sm hover:text-red-600 flex items-center gap-1"
-                    >
-                      {res.snippet.title}
-                      <ExternalLink size={12} />
-                    </a>
+                    <div className="flex items-center gap-1.5 group/search">
+                      <Link 
+                        to={`/channel/${res.id}`}
+                        className="font-bold text-sm hover:text-red-600 transition-colors"
+                      >
+                        {res.snippet.title}
+                      </Link>
+                      <a 
+                        href={`https://www.youtube.com/channel/${res.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-300 hover:text-red-500 transition-colors"
+                        title="유튜브 열기"
+                      >
+                        <ExternalLink size={10} />
+                      </a>
+                    </div>
                     <p className="text-xs text-slate-400">구독자 {parseInt(res.statistics.subscriberCount).toLocaleString()}명</p>
                   </div>
                   <button 
@@ -123,15 +131,23 @@ const Compare: React.FC = () => {
                         <Link to={`/channel/${c.id}`}>
                           <img src={c.snippet.thumbnails.default.url} className="w-16 h-16 rounded-2xl shadow-sm border hover:scale-105 transition-transform" />
                         </Link>
-                        <a 
-                          href={`https://www.youtube.com/channel/${c.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-red-600 transition-colors text-slate-900 text-sm font-bold truncate max-w-[150px] flex items-center gap-1 justify-center"
-                        >
-                          {c.snippet.title}
-                          <ExternalLink size={12} />
-                        </a>
+                        <div className="flex items-center justify-center gap-1.5 group/header">
+                          <Link 
+                            to={`/channel/${c.id}`}
+                            className="hover:text-red-600 transition-colors text-slate-900 text-sm font-bold truncate max-w-[150px]"
+                          >
+                            {c.snippet.title}
+                          </Link>
+                          <a 
+                            href={`https://www.youtube.com/channel/${c.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/header:opacity-100"
+                            title="유튜브 열기"
+                          >
+                            <ExternalLink size={12} />
+                          </a>
+                        </div>
                       </div>
                     </th>
                   ))}

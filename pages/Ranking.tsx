@@ -167,7 +167,6 @@ const Ranking: React.FC = () => {
                 className="text-xs font-black text-slate-600 outline-none bg-transparent cursor-pointer"
               >
                 {PAGE_SIZES.map(size => (
-                  /* Fixed typo in option closing tag */
                   <option key={size} value={size}>{size}개씩 보기</option>
                 ))}
               </select>
@@ -226,15 +225,23 @@ const Ranking: React.FC = () => {
                             <img src={channel.snippet.thumbnails.default.url} className="w-12 h-12 rounded-2xl bg-slate-100 shadow-sm hover:scale-110 transition-transform" />
                           </Link>
                           <div>
-                            <a 
-                              href={channelUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="font-black text-slate-900 hover:text-red-600 transition-colors truncate max-w-[200px] tracking-tight flex items-center gap-1 group/link"
-                            >
-                              {channel.snippet.title}
-                              <ExternalLink size={12} className="opacity-0 group-hover/link:opacity-100 transition-opacity" />
-                            </a>
+                            <div className="flex items-center gap-1.5 group/name">
+                              <Link 
+                                to={`/channel/${channel.id}`}
+                                className="font-black text-slate-900 group-hover/name:text-red-600 transition-colors truncate max-w-[200px] tracking-tight"
+                              >
+                                {channel.snippet.title}
+                              </Link>
+                              <a 
+                                href={channelUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover/name:opacity-100"
+                                title="유튜브 채널 열기"
+                              >
+                                <ExternalLink size={12} />
+                              </a>
+                            </div>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Youtube Partner</p>
                           </div>
                         </div>
