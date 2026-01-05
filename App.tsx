@@ -34,8 +34,20 @@ const App: React.FC = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Dynamic Title for SEO
   useEffect(() => {
     setIsSidebarOpen(false);
+    
+    const baseTitle = 'YouRank - 유튜브 채널 분석';
+    let subTitle = '';
+
+    if (location.pathname === '/') subTitle = '데이터 대시보드';
+    else if (location.pathname.includes('/ranking')) subTitle = '채널 랭킹 분석';
+    else if (location.pathname.includes('/channel/')) subTitle = '채널 상세 성과';
+    else if (location.pathname.includes('/compare')) subTitle = '채널 지표 비교';
+    else if (location.pathname.includes('/settings')) subTitle = '설정';
+
+    document.title = subTitle ? `${subTitle} | ${baseTitle}` : baseTitle;
   }, [location.pathname]);
 
   return (
