@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { youtubeApi } from '../services/api';
 import { YouTubeChannel } from '../types';
-import { Search, Plus, X, Loader2, Copy } from 'lucide-react';
+import { Search, Plus, X, Loader2, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Compare: React.FC = () => {
@@ -68,18 +68,30 @@ const Compare: React.FC = () => {
           {searchResults.length > 0 && (
             <div className="absolute top-full left-0 w-full mt-2 bg-white border rounded-2xl shadow-2xl z-20 max-h-64 overflow-y-auto">
               {searchResults.map(res => (
-                <button 
+                <div 
                   key={res.id} 
-                  onClick={() => addChannel(res)}
                   className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 border-b last:border-0 text-left"
                 >
                   <img src={res.snippet.thumbnails.default.url} className="w-10 h-10 rounded-full" />
                   <div className="flex-1">
-                    <p className="font-bold text-sm">{res.snippet.title}</p>
+                    <a 
+                      href={`https://www.youtube.com/channel/${res.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-sm hover:text-red-600 flex items-center gap-1"
+                    >
+                      {res.snippet.title}
+                      <ExternalLink size={12} />
+                    </a>
                     <p className="text-xs text-slate-400">구독자 {parseInt(res.statistics.subscriberCount).toLocaleString()}명</p>
                   </div>
-                  <Plus size={20} className="text-slate-300" />
-                </button>
+                  <button 
+                    onClick={() => addChannel(res)}
+                    className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -108,10 +120,18 @@ const Compare: React.FC = () => {
                   {channels.map(c => (
                     <th key={c.id} className="px-6 py-6 min-w-[200px] text-center border-r last:border-0">
                       <div className="flex flex-col items-center gap-2">
-                        <img src={c.snippet.thumbnails.default.url} className="w-16 h-16 rounded-2xl shadow-sm border" />
-                        <Link to={`/channel/${c.id}`} className="hover:text-red-600 transition-colors">
-                          <p className="text-slate-900 text-sm font-bold truncate max-w-[150px]">{c.snippet.title}</p>
+                        <Link to={`/channel/${c.id}`}>
+                          <img src={c.snippet.thumbnails.default.url} className="w-16 h-16 rounded-2xl shadow-sm border hover:scale-105 transition-transform" />
                         </Link>
+                        <a 
+                          href={`https://www.youtube.com/channel/${c.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-red-600 transition-colors text-slate-900 text-sm font-bold truncate max-w-[150px] flex items-center gap-1 justify-center"
+                        >
+                          {c.snippet.title}
+                          <ExternalLink size={12} />
+                        </a>
                       </div>
                     </th>
                   ))}

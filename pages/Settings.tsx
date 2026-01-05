@@ -52,7 +52,7 @@ const Settings: React.FC = () => {
             </div>
             <div className="flex items-center justify-between text-sm py-1">
               <span className="text-slate-500">문의</span>
-              <span className="font-medium text-slate-900">support@yourank.io</span>
+              <span className="font-medium text-slate-900">codingfun05@gmail.com</span>
             </div>
           </div>
         </section>
@@ -63,7 +63,7 @@ const Settings: React.FC = () => {
           <Youtube size={20} />
           <span className="font-black italic tracking-tighter">YouRank</span>
         </div>
-        <p className="text-[10px] text-slate-400">© 2024 YouRank. All rights reserved.</p>
+        <p className="text-[10px] text-slate-400">© 2026 YouRank. All rights reserved.</p>
       </footer>
     </div>
   );

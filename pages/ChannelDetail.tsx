@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Zap,
   Info,
-  Calendar
+  Calendar,
+  Youtube
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -82,6 +83,7 @@ const ChannelDetail: React.FC = () => {
 
   const avgViews = videos ? videos.reduce((acc, v) => acc + parseInt(v.statistics.viewCount), 0) / videos.length : 0;
   const subscriberCount = parseInt(channelData.statistics.subscriberCount);
+  const youtubeChannelUrl = `https://www.youtube.com/channel/${channelData.id}`;
   
   // Earnings Calculation (Based on $0.5 - $4.0 CPM)
   const monthlyMin = (avgViews * 30 * 0.5) / 1000;
@@ -103,14 +105,26 @@ const ChannelDetail: React.FC = () => {
       <div className="bg-white p-6 md:p-8 rounded-[32px] border shadow-sm flex flex-col md:flex-row gap-8 items-start relative overflow-hidden group">
         <img src={channelData.snippet.thumbnails.high.url} className="w-24 h-24 md:w-32 md:h-32 rounded-[24px] object-cover bg-slate-100 shadow-xl z-10 group-hover:rotate-2 transition-transform" alt="Channel" />
         <div className="flex-1 space-y-3 z-10">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900">{channelData.snippet.title}</h1>
-            <button 
-              onClick={toggleFavorite}
-              className={`p-2 rounded-full transition-all ${isFavorite ? 'text-yellow-500 bg-yellow-50' : 'text-slate-200 hover:text-yellow-400 bg-slate-50'}`}
-            >
-              <Star fill={isFavorite ? 'currentColor' : 'none'} size={24} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={toggleFavorite}
+                className={`p-2 rounded-full transition-all ${isFavorite ? 'text-yellow-500 bg-yellow-50' : 'text-slate-200 hover:text-yellow-400 bg-slate-50'}`}
+                title="즐겨찾기"
+              >
+                <Star fill={isFavorite ? 'currentColor' : 'none'} size={24} />
+              </button>
+              <a 
+                href={youtubeChannelUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100"
+              >
+                <Youtube size={16} />
+                채널 바로가기
+              </a>
+            </div>
           </div>
           <p className="text-slate-500 line-clamp-2 text-sm max-w-2xl leading-relaxed">{channelData.snippet.description}</p>
           <div className="flex flex-wrap gap-2 mt-4">

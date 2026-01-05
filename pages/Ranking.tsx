@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
-import { Search, Loader2, TrendingUp, Zap, MousePointer2, ListOrdered } from 'lucide-react';
+import { Search, Loader2, TrendingUp, Zap, MousePointer2, ListOrdered, ExternalLink } from 'lucide-react';
 import { YouTubeChannel } from '../types.ts';
 
 const CATEGORIES = [
@@ -159,7 +159,6 @@ const Ranking: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            {/* 결과 개수 선택 셀렉트 박스 */}
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
               <ListOrdered size={14} className="text-slate-400" />
               <select 
@@ -168,6 +167,7 @@ const Ranking: React.FC = () => {
                 className="text-xs font-black text-slate-600 outline-none bg-transparent cursor-pointer"
               >
                 {PAGE_SIZES.map(size => (
+                  /* Fixed typo in option closing tag */
                   <option key={size} value={size}>{size}개씩 보기</option>
                 ))}
               </select>
@@ -209,6 +209,7 @@ const Ranking: React.FC = () => {
               <tbody className="divide-y divide-slate-50">
                 {sortedData.map((channel, idx) => {
                   const efficiency = calculateEfficiency(channel.statistics.viewCount, channel.statistics.subscriberCount);
+                  const channelUrl = `https://www.youtube.com/channel/${channel.id}`;
                   return (
                     <tr key={channel.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-8 py-5">
@@ -220,15 +221,23 @@ const Ranking: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-8 py-5">
-                        <Link to={`/channel/${channel.id}`} className="flex items-center gap-4">
-                          <img src={channel.snippet.thumbnails.default.url} className="w-12 h-12 rounded-2xl bg-slate-100 shadow-sm group-hover:scale-110 transition-transform" />
+                        <div className="flex items-center gap-4">
+                          <Link to={`/channel/${channel.id}`} title="상세 분석 보기">
+                            <img src={channel.snippet.thumbnails.default.url} className="w-12 h-12 rounded-2xl bg-slate-100 shadow-sm hover:scale-110 transition-transform" />
+                          </Link>
                           <div>
-                            <p className="font-black text-slate-900 group-hover:text-red-600 transition-colors truncate max-w-[200px] tracking-tight">
+                            <a 
+                              href={channelUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-black text-slate-900 hover:text-red-600 transition-colors truncate max-w-[200px] tracking-tight flex items-center gap-1 group/link"
+                            >
                               {channel.snippet.title}
-                            </p>
+                              <ExternalLink size={12} className="opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                            </a>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Youtube Partner</p>
                           </div>
-                        </Link>
+                        </div>
                       </td>
                       <td className="px-8 py-5 text-right font-black text-slate-700">
                         {formatCount(channel.statistics.subscriberCount)}
@@ -252,6 +261,7 @@ const Ranking: React.FC = () => {
                       <td className="px-8 py-5 text-right">
                         <Link 
                           to={`/channel/${channel.id}`}
+                          title="상세 지표 분석"
                           className="bg-slate-50 group-hover:bg-red-600 group-hover:text-white p-2.5 rounded-xl text-slate-400 transition-all inline-block shadow-sm group-hover:shadow-red-200"
                         >
                           <TrendingUp size={18} />
