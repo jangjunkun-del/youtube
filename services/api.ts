@@ -1,5 +1,5 @@
 
-import { YouTubeChannel, YouTubeVideo, SearchResult } from '../types';
+import { YouTubeChannel, YouTubeVideo, SearchResult } from '../types.ts';
 
 const API_BASE = '/api';
 

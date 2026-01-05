@@ -4,18 +4,17 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BarChart3, 
-  Search, 
   Youtube, 
   Copy, 
   Settings as SettingsIcon,
   Menu,
   X
 } from 'lucide-react';
-import Home from './pages/Home';
-import Ranking from './pages/Ranking';
-import ChannelDetail from './pages/ChannelDetail';
-import Compare from './pages/Compare';
-import Settings from './pages/Settings';
+import Home from './pages/Home.tsx';
+import Ranking from './pages/Ranking.tsx';
+import ChannelDetail from './pages/ChannelDetail.tsx';
+import Compare from './pages/Compare.tsx';
+import Settings from './pages/Settings.tsx';
 
 const SidebarItem = ({ to, icon: Icon, label, active }: { to: string, icon: any, label: string, active: boolean }) => (
   <Link
@@ -35,14 +34,12 @@ const App: React.FC = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Close sidebar on route change (mobile)
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
-      {/* Mobile Header */}
       <header className="md:hidden flex items-center justify-between p-4 bg-white border-b sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-red-600 text-xl">
           <Youtube />
@@ -53,7 +50,6 @@ const App: React.FC = () => {
         </button>
       </header>
 
-      {/* Sidebar / Desktop Navigation */}
       <aside className={`
         fixed inset-0 z-40 md:relative md:flex flex-col w-64 bg-white border-r transition-transform duration-300 transform
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -75,7 +71,6 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      {/* Backdrop for mobile */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden" 
@@ -83,7 +78,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <Routes>
           <Route path="/" element={<Home />} />
