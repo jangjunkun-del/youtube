@@ -26,15 +26,5 @@ export const youtubeApi = {
     const videosRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics&id=${videoIds}`);
     const videosData = await videosRes.json();
     return videosData.items || [];
-  },
-
-  getAIAnalysis: async (channelTitle: string, description: string, recentVideos: string[]): Promise<string> => {
-    const res = await fetch(`${API_BASE}/analyze`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelTitle, description, recentVideos }),
-    });
-    const data = await res.json();
-    return data.analysis || "분석 결과를 가져오지 못했습니다.";
   }
 };

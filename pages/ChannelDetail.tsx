@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
 import { 
   Users, 
@@ -13,7 +13,6 @@ import {
   Loader2,
   ChevronLeft,
   Star,
-  Sparkles,
   DollarSign,
   TrendingUp,
   Zap
@@ -38,7 +37,6 @@ const getViralGrade = (views: number, subscribers: number) => {
 const ChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [isFavorite, setIsFavorite] = React.useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 
   const { data: channelData, isLoading: channelLoading } = useQuery({
     queryKey: ['channel', id],
@@ -50,14 +48,6 @@ const ChannelDetail: React.FC = () => {
     queryKey: ['channelVideos', channelData?.contentDetails?.relatedPlaylists.uploads],
     queryFn: () => youtubeApi.getChannelVideos(channelData!.contentDetails!.relatedPlaylists.uploads),
     enabled: !!channelData?.contentDetails?.relatedPlaylists.uploads,
-  });
-
-  const aiMutation = useMutation({
-    mutationFn: () => {
-      const videoTitles = videos?.map(v => v.snippet.title) || [];
-      return youtubeApi.getAIAnalysis(channelData!.snippet.title, channelData!.snippet.description, videoTitles);
-    },
-    onSuccess: (data) => setAiAnalysis(data),
   });
 
   React.useEffect(() => {
@@ -96,9 +86,6 @@ const ChannelDetail: React.FC = () => {
 
       {/* Header Card */}
       <div className="bg-white p-6 md:p-8 rounded-[32px] border shadow-sm flex flex-col md:flex-row gap-8 items-start relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-           <Youtube size={160} />
-        </div>
         <img src={channelData.snippet.thumbnails.high.url} className="w-24 h-24 md:w-32 md:h-32 rounded-[24px] object-cover bg-slate-100 shadow-xl z-10" />
         <div className="flex-1 space-y-3 z-10">
           <div className="flex items-center gap-3">
@@ -130,49 +117,6 @@ const ChannelDetail: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* AI Report Section */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[32px] shadow-2xl text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 -m-4 w-32 h-32 bg-red-500/20 blur-3xl rounded-full group-hover:bg-red-500/30 transition-all duration-700"></div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <div className="bg-red-500 p-2 rounded-lg">
-                  <Sparkles size={20} className="text-white" />
-                </div>
-                <h3 className="text-xl font-bold">AI 채널 전략 리포트</h3>
-              </div>
-              {!aiAnalysis && !aiMutation.isPending && (
-                <button 
-                  onClick={() => aiMutation.mutate()}
-                  className="bg-white text-slate-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-100 transition-all flex items-center gap-2"
-                >
-                  분석 시작하기
-                </button>
-              )}
-            </div>
-            
-            {aiMutation.isPending && (
-              <div className="py-12 flex flex-col items-center justify-center gap-4 text-slate-400">
-                <Loader2 className="animate-spin" size={32} />
-                <p className="animate-pulse">Gemini AI가 채널을 심층 분석하고 있습니다...</p>
-              </div>
-            )}
-
-            {aiAnalysis && (
-              <div className="prose prose-invert prose-sm max-w-none">
-                <div className="whitespace-pre-wrap leading-relaxed text-slate-300 bg-white/5 p-6 rounded-2xl border border-white/10">
-                  {aiAnalysis}
-                </div>
-              </div>
-            )}
-
-            {!aiAnalysis && !aiMutation.isPending && (
-              <p className="text-slate-400 text-sm">
-                AI를 사용하여 이 채널의 콘텐츠 전략, 타겟층, 그리고 성장 포인트를 분석하세요. 
-                최근 10개 영상의 메타데이터를 기반으로 맞춤형 가이드를 제공합니다.
-              </p>
-            )}
-          </div>
-
           {/* Recent Videos with Viral Score */}
           <section className="space-y-4">
             <h3 className="text-xl font-bold flex items-center gap-2">
@@ -203,9 +147,10 @@ const ChannelDetail: React.FC = () => {
                       <a 
                         href={`https://youtube.com/watch?v=${video.id}`} 
                         target="_blank" 
+                        rel="noopener noreferrer"
                         className="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-red-600 transition-colors"
                       >
-                        <Zap size={20} />
+                        <PlayCircle size={20} />
                       </a>
                     </div>
                   );
@@ -271,12 +216,6 @@ const MetricCard = ({ icon: Icon, label, value, color, bg }: any) => (
     <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.1em]">{label}</p>
     <p className="text-xl font-extrabold text-slate-900 tracking-tight">{value}</p>
   </div>
-);
-
-const Youtube = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-  </svg>
 );
 
 export default ChannelDetail;
