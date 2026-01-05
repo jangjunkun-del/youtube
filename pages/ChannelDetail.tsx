@@ -11,12 +11,13 @@ import {
   Loader2,
   ChevronLeft,
   Star,
-  DollarSign,
+  Coins,
   TrendingUp,
   Zap,
   Info,
   Calendar,
-  Youtube
+  Youtube,
+  RefreshCw
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -28,10 +29,33 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
+// 환율 API에서 데이터를 가져오는 함수
+const fetchExchangeRate = async (): Promise<number> => {
+  try {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW');
+    const data = await res.json();
+    return data.rates.KRW || 1400;
+  } catch (error) {
+    console.warn('환율 API 호출 실패, 기본값(1400원)을 사용합니다.');
+    return 1400; // API 실패 시 현재 시세 반영
+  }
+};
+
 const formatNumber = (num: string | number) => {
   const n = typeof num === 'string' ? parseInt(num, 10) : num;
   if (isNaN(n)) return '0';
   return n.toLocaleString();
+};
+
+const formatKRW = (usdAmount: number, rate: number) => {
+  const krw = usdAmount * rate;
+  if (krw >= 100000000) {
+    return `약 ${(krw / 100000000).toFixed(1)}억원`;
+  }
+  if (krw >= 10000) {
+    return `약 ${(krw / 10000).toFixed(0).toLocaleString()}만원`;
+  }
+  return `₩${Math.round(krw).toLocaleString()}`;
 };
 
 const getViralGrade = (views: number, subscribers: number) => {
@@ -47,6 +71,13 @@ const getViralGrade = (views: number, subscribers: number) => {
 const ChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [isFavorite, setIsFavorite] = React.useState(false);
+
+  // 실시간 환율 쿼리 추가
+  const { data: exchangeRate = 1400 } = useQuery({
+    queryKey: ['exchangeRate'],
+    queryFn: fetchExchangeRate,
+    staleTime: 1000 * 60 * 60, // 1시간 동안 캐시 유지
+  });
 
   const { data: channelData, isLoading: channelLoading } = useQuery({
     queryKey: ['channel', id],
@@ -86,8 +117,7 @@ const ChannelDetail: React.FC = () => {
   const youtubeChannelUrl = `https://www.youtube.com/channel/${channelData.id}`;
   
   // Earnings Calculation (Based on $0.5 - $4.0 CPM)
-  const monthlyMin = (avgViews * 30 * 0.5) / 1000;
-  const monthlyMax = (avgViews * 30 * 4.0) / 1000;
+  const monthlyMaxUSD = (avgViews * 30 * 4.0) / 1000;
 
   // Chart Data
   const chartData = videos?.slice().reverse().map(v => ({
@@ -144,7 +174,14 @@ const ChannelDetail: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard icon={Users} label="현재 구독자" value={formatNumber(subscriberCount)} color="text-blue-600" bg="bg-blue-50" />
         <MetricCard icon={PlayCircle} label="누적 조회수" value={formatNumber(channelData.statistics.viewCount)} color="text-red-600" bg="bg-red-50" />
-        <MetricCard icon={DollarSign} label="예상 월 수익(최대)" value={`$${Math.round(monthlyMax).toLocaleString()}`} color="text-emerald-600" bg="bg-emerald-50" />
+        <MetricCard 
+          icon={Coins} 
+          label="예상 월 수익(최대)" 
+          value={formatKRW(monthlyMaxUSD, exchangeRate)} 
+          subValue={`$${Math.round(monthlyMaxUSD).toLocaleString()}`}
+          color="text-amber-600" 
+          bg="bg-amber-50" 
+        />
         <MetricCard icon={Zap} label="평균 조회 기여도" value={`${((avgViews / subscriberCount) * 100).toFixed(1)}%`} color="text-purple-600" bg="bg-purple-50" />
       </div>
 
@@ -156,7 +193,12 @@ const ChannelDetail: React.FC = () => {
               <h3 className="text-lg font-black flex items-center gap-2 tracking-tight">
                 <BarChart size={20} className="text-red-500" /> 최근 콘텐츠 성과 분석
               </h3>
-              <span className="text-[10px] text-slate-400 font-black bg-slate-50 px-3 py-1 rounded-full border">LAST 10 VIDEOS</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-[10px] text-slate-400 font-black bg-slate-50 px-3 py-1 rounded-full border">LAST 10 VIDEOS</span>
+                <span className="text-[9px] text-slate-300 flex items-center gap-1">
+                  <RefreshCw size={8} /> 실시간 환율 적용 중 (1$ = {exchangeRate.toFixed(1)}원)
+                </span>
+              </div>
             </div>
             <div className="h-[300px] w-full">
               {videosLoading ? (
@@ -268,13 +310,16 @@ const ChannelDetail: React.FC = () => {
   );
 };
 
-const MetricCard = ({ icon: Icon, label, value, color, bg }: any) => (
+const MetricCard = ({ icon: Icon, label, value, subValue, color, bg }: any) => (
   <div className="bg-white p-6 rounded-[28px] border shadow-sm flex flex-col gap-2 group hover:border-red-500 transition-all">
     <div className={`${bg} ${color} w-fit p-2 rounded-xl transition-transform group-hover:scale-110`}>
       <Icon size={18} />
     </div>
     <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">{label}</p>
-    <p className="text-xl font-black text-slate-900 tracking-tighter">{value}</p>
+    <div>
+      <p className="text-xl font-black text-slate-900 tracking-tighter">{value}</p>
+      {subValue && <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subValue}</p>}
+    </div>
   </div>
 );
 
