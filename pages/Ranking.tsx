@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
-import { Search, Loader2, TrendingUp, Zap, MousePointer2 } from 'lucide-react';
+import { Search, Loader2, TrendingUp, Zap, MousePointer2, ListOrdered } from 'lucide-react';
 import { YouTubeChannel } from '../types.ts';
 
 const CATEGORIES = [
@@ -18,6 +18,8 @@ const CATEGORIES = [
   { label: '✈️ 여행', value: '여행' },
   { label: '💪 운동/헬스', value: '운동 헬스' }
 ];
+
+const PAGE_SIZES = [10, 20, 30, 50];
 
 const formatCount = (num: string | number) => {
   const n = typeof num === 'string' ? parseInt(num, 10) : num;
@@ -37,29 +39,40 @@ const calculateEfficiency = (views: string, subs: string) => {
 const Ranking: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryParam = searchParams.get('q') || 'IT 테크';
+  const sizeParam = parseInt(searchParams.get('size') || '10');
+  
   const [keyword, setKeyword] = useState(queryParam);
+  const [pageSize, setPageSize] = useState(sizeParam);
   const [sortBy, setSortBy] = useState<'subscriber' | 'view' | 'efficiency'>('subscriber');
 
-  // URL 파라미터가 변경되면 입력 필드도 업데이트
   useEffect(() => {
     setKeyword(queryParam);
   }, [queryParam]);
 
+  useEffect(() => {
+    setPageSize(sizeParam);
+  }, [sizeParam]);
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['searchChannels', queryParam],
-    queryFn: () => youtubeApi.searchChannels(queryParam),
+    queryKey: ['searchChannels', queryParam, pageSize],
+    queryFn: () => youtubeApi.searchChannels(queryParam, pageSize),
     enabled: !!queryParam,
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (keyword.trim()) {
-      setSearchParams({ q: keyword.trim() });
+      setSearchParams({ q: keyword.trim(), size: pageSize.toString() });
     }
   };
 
   const handleCategoryClick = (val: string) => {
-    setSearchParams({ q: val });
+    setSearchParams({ q: val, size: pageSize.toString() });
+  };
+
+  const handleSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = e.target.value;
+    setSearchParams({ q: queryParam, size: newSize });
   };
 
   const sortedData = React.useMemo(() => {
@@ -102,7 +115,6 @@ const Ranking: React.FC = () => {
           </form>
         </div>
 
-        {/* 인기 카테고리 퀵 선택 */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
             <MousePointer2 size={12} />
@@ -145,9 +157,26 @@ const Ranking: React.FC = () => {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-100">
-            <Zap size={14} className="text-yellow-500" fill="currentColor" />
-            검색 결과: {queryParam}
+          
+          <div className="flex items-center gap-4">
+            {/* 결과 개수 선택 셀렉트 박스 */}
+            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+              <ListOrdered size={14} className="text-slate-400" />
+              <select 
+                value={pageSize}
+                onChange={handleSizeChange}
+                className="text-xs font-black text-slate-600 outline-none bg-transparent cursor-pointer"
+              >
+                {PAGE_SIZES.map(size => (
+                  <option key={size} value={size}>{size}개씩 보기</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-100">
+              <Zap size={14} className="text-yellow-500" fill="currentColor" />
+              검색: {queryParam}
+            </div>
           </div>
         </div>
 
@@ -161,8 +190,8 @@ const Ranking: React.FC = () => {
           </div>
         ) : isError ? (
           <div className="p-32 text-center">
-            <p className="text-red-500 font-black text-lg">데이터 호출 한도 초과</p>
-            <p className="text-slate-400 text-sm mt-2 font-medium">YouTube API 쿼터가 소진되었습니다. 내일 다시 시도해주세요.</p>
+            <p className="text-red-500 font-black text-lg">데이터 호출 에러</p>
+            <p className="text-slate-400 text-sm mt-2 font-medium">YouTube API 쿼터가 소진되었거나 네트워크 문제일 수 있습니다.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

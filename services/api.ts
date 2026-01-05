@@ -4,8 +4,9 @@ import { YouTubeChannel, YouTubeVideo, SearchResult } from '../types.ts';
 const API_BASE = '/api';
 
 export const youtubeApi = {
-  searchChannels: async (keyword: string): Promise<YouTubeChannel[]> => {
-    const searchRes = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=channel&maxResults=10&q=${encodeURIComponent(keyword)}`);
+  searchChannels: async (keyword: string, maxResults: number = 10): Promise<YouTubeChannel[]> => {
+    // maxResults를 쿼리 파라미터로 전달 (YouTube API v3 Search 제한은 최대 50)
+    const searchRes = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=channel&maxResults=${maxResults}&q=${encodeURIComponent(keyword)}`);
     const searchData = await searchRes.json();
     if (!searchData.items) return [];
     const ids = searchData.items.map((item: SearchResult) => item.id.channelId).join(',');
