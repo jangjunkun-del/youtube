@@ -1,0 +1,5 @@
+{
+  "name": "YouRank - YouTube Analytics & Ranking",
+  "description": "YouTube 채널 랭킹, 상세 분석 및 채널 비교 기능을 제공하는 전문가급 대시보드입니다. Cloudflare Functions를 통해 API Key를 안전하게 관리합니다.",
+  "requestFramePermissions": []
+}
