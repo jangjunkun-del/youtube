@@ -38,16 +38,21 @@ const calculateEfficiency = (views: string, subs: string) => {
 
 const Ranking: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const queryParam = searchParams.get('q') || 'IT 테크';
+  
+  // URL에서 q 파라미터를 가져오되, 실제 검색(API)에는 'IT 테크'를 기본값으로 사용
+  const qFromUrl = searchParams.get('q');
+  const queryParam = qFromUrl || 'IT 테크'; 
   const sizeParam = parseInt(searchParams.get('size') || '10');
   
-  const [keyword, setKeyword] = useState(queryParam);
+  // 입력창 상태: URL에 q가 명시적으로 있을 때만 그 값을 보여주고, 없으면 빈 문자열(Placeholder 노출)
+  const [keyword, setKeyword] = useState(qFromUrl || '');
   const [pageSize, setPageSize] = useState(sizeParam);
   const [sortBy, setSortBy] = useState<'subscriber' | 'view' | 'efficiency'>('subscriber');
 
+  // URL의 q 파라미터가 변경될 때만 입력창 동기화 (예: 카테고리 클릭 시)
   useEffect(() => {
-    setKeyword(queryParam);
-  }, [queryParam]);
+    setKeyword(qFromUrl || '');
+  }, [qFromUrl]);
 
   useEffect(() => {
     setPageSize(sizeParam);
