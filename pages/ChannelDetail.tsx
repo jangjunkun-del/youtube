@@ -17,7 +17,8 @@ import {
   Info,
   Calendar,
   Youtube,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -178,11 +179,12 @@ const ChannelDetail: React.FC = () => {
         <MetricCard icon={PlayCircle} label="누적 조회수" value={formatNumber(channelData.statistics.viewCount)} color="text-red-600" bg="bg-red-50" />
         <MetricCard 
           icon={Coins} 
-          label="예상 월 수익(최대)" 
+          label="예상 월 수익(추정치)" 
           value={formatKRW(monthlyMaxUSD, exchangeRate)} 
-          subValue={`$${Math.round(monthlyMaxUSD).toLocaleString()}`}
+          subValue={`환율 기반 $${Math.round(monthlyMaxUSD).toLocaleString()}`}
           color="text-amber-600" 
           bg="bg-amber-50" 
+          hasInfo
         />
         <MetricCard icon={Zap} label="평균 조회 기여도" value={`${((avgViews / subscriberCount) * 100).toFixed(1)}%`} color="text-purple-600" bg="bg-purple-50" />
       </div>
@@ -293,17 +295,18 @@ const ChannelDetail: React.FC = () => {
                </div>
             </div>
 
-            <div className="p-3 bg-red-500/10 rounded-xl text-[10px] text-red-300 leading-relaxed font-medium">
-              * 위 예측치는 최근 10개 영상의 활성도를 기반으로 한 낙관적 시뮬레이션입니다. 채널의 업로드 주기와 콘텐츠 일관성에 따라 달라질 수 있습니다.
+            <div className="p-3 bg-red-500/10 rounded-xl text-[10px] text-red-300 leading-relaxed font-medium flex gap-2">
+              <AlertCircle size={14} className="shrink-0 mt-0.5" />
+              <span>위 데이터는 시뮬레이션 결과로, 채널의 업로드 패턴과 시장 환경에 따라 실제 성장세는 달라질 수 있습니다.</span>
             </div>
           </div>
 
           <div className="bg-white p-6 rounded-[32px] border shadow-sm space-y-4">
             <div className="flex items-center gap-2 font-black text-slate-800 uppercase tracking-tighter text-sm">
-              <Info size={16} className="text-blue-500" /> 분석 가이드
+              <Info size={16} className="text-blue-500" /> 수익 분석 면책 조항
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-              성장 잠재력 지수가 <strong className="text-slate-800">우수(A) 이상</strong>인 채널은 구독자 대비 높은 도달력을 가지고 있습니다. 이는 알고리즘이 해당 채널의 콘텐츠를 적극적으로 추천하고 있음을 시사합니다.
+              표기된 예상 수익은 최근 영상의 평균 조회수를 바탕으로 한 <strong>단순 추정치</strong>이며, YouTube의 실제 정산 금액과는 무관합니다. 광고 효율(CPM), 시청 지속 시간, 시청자 국가, 영상 카테고리에 따라 실제 수입은 크게 차이 날 수 있으므로 <strong>비교 분석용 참고 지표</strong>로만 활용해 주시기 바랍니다.
             </p>
           </div>
         </div>
@@ -312,12 +315,15 @@ const ChannelDetail: React.FC = () => {
   );
 };
 
-const MetricCard = ({ icon: Icon, label, value, subValue, color, bg }: any) => (
-  <div className="bg-white p-6 rounded-[28px] border shadow-sm flex flex-col gap-2 group hover:border-red-500 transition-all">
+const MetricCard = ({ icon: Icon, label, value, subValue, color, bg, hasInfo }: any) => (
+  <div className="bg-white p-6 rounded-[28px] border shadow-sm flex flex-col gap-2 group hover:border-red-500 transition-all relative">
     <div className={`${bg} ${color} w-fit p-2 rounded-xl transition-transform group-hover:scale-110`}>
       <Icon size={18} />
     </div>
-    <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">{label}</p>
+    <div className="flex items-center gap-1">
+      <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">{label}</p>
+      {hasInfo && <AlertCircle size={10} className="text-slate-300" />}
+    </div>
     <div>
       <p className="text-xl font-black text-slate-900 tracking-tighter">{value}</p>
       {subValue && <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subValue}</p>}
