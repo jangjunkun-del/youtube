@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
-import { Search, TrendingUp, Users, PlayCircle, Star, BarChart3, ChevronRight } from 'lucide-react';
+import { Search, TrendingUp, Users, PlayCircle, Star, BarChart3, ChevronRight, Loader2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { youtubeApi } from '../services/api';
 
 const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +16,21 @@ const Home: React.FC = () => {
     }
   };
 
-  const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+  const favorites: string[] = JSON.parse(localStorage.getItem('favorites') || '[]');
+
+  // 즐겨찾기 채널들의 실제 정보를 가져옴
+  const { data: favoriteChannels, isLoading: isFavLoading } = useQuery({
+    queryKey: ['favoriteChannels', favorites.join(',')],
+    queryFn: () => youtubeApi.getChannelsByIds(favorites.join(',')),
+    enabled: favorites.length > 0,
+  });
+
+  const formatCount = (num: string) => {
+    const n = parseInt(num, 10);
+    if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
+    return n.toLocaleString();
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
@@ -122,20 +138,38 @@ const Home: React.FC = () => {
             </div>
             <Link to="/ranking" className="inline-block mt-4 text-red-600 font-bold hover:underline">인기 채널 둘러보기 &rarr;</Link>
           </div>
+        ) : isFavLoading ? (
+          <div className="flex justify-center p-20">
+            <Loader2 className="animate-spin text-red-500" size={32} />
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {favorites.map((id: string) => (
+            {favoriteChannels?.map((channel) => (
               <Link 
-                key={id} 
-                to={`/channel/${id}`}
+                key={channel.id} 
+                to={`/channel/${channel.id}`}
                 className="bg-white p-6 rounded-[32px] border-2 border-slate-50 shadow-sm hover:shadow-xl hover:border-red-100 transition-all group flex flex-col items-center text-center gap-3"
               >
-                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-300 group-hover:bg-red-50 group-hover:text-red-500 transition-colors">
-                  <YoutubeIcon size={32} />
+                <div className="relative">
+                  <img 
+                    src={channel.snippet.thumbnails.default.url} 
+                    alt={channel.snippet.title}
+                    className="w-20 h-20 rounded-[24px] shadow-md group-hover:scale-105 transition-transform bg-slate-100"
+                  />
+                  <div className="absolute -top-2 -right-2 bg-yellow-400 text-white p-1 rounded-full shadow-sm">
+                    <Star size={12} fill="currentColor" />
+                  </div>
                 </div>
-                <div>
-                  <p className="text-slate-900 font-black truncate w-full max-w-[150px]">{id}</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-tighter tracking-widest">Detail Analysis &rarr;</p>
+                <div className="w-full">
+                  <p className="text-slate-900 font-black truncate w-full px-2 tracking-tight">
+                    {channel.snippet.title}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">
+                    구독자 {formatCount(channel.statistics.subscriberCount)}명
+                  </p>
+                  <div className="mt-3 inline-flex items-center gap-1 text-[9px] font-black text-red-500 uppercase bg-red-50 px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    Detailed Report <ChevronRight size={10} />
+                  </div>
                 </div>
               </Link>
             ))}
@@ -156,12 +190,6 @@ const SummaryCard = ({ icon: Icon, title, desc, color, bg }: any) => (
       <p className="text-slate-500 text-sm leading-relaxed font-medium">{desc}</p>
     </div>
   </div>
-);
-
-const YoutubeIcon = ({ size, className }: { size?: number, className?: string }) => (
-  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-  </svg>
 );
 
 export default Home;
