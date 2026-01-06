@@ -1,5 +1,3 @@
 
 User-agent: *
 Allow: /
-
-Sitemap: https://yourank.pages.dev/sitemap.xml
