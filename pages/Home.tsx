@@ -178,6 +178,7 @@ const Home: React.FC = () => {
               views="4.9백만" 
               channel="HYBE LABELS" 
               img="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=225&fit=crop"
+              url="https://www.youtube.com/watch?v=l9wM7UAs77M"
             />
             <VideoRankItem 
               rank={2} 
@@ -185,6 +186,7 @@ const Home: React.FC = () => {
               views="3.6백만" 
               channel="대한민국정부" 
               img="https://images.unsplash.com/photo-1541873676947-95a272d6bb70?w=400&h=225&fit=crop"
+              url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
             />
           </div>
         </div>
@@ -235,13 +237,18 @@ const Home: React.FC = () => {
   );
 };
 
-const VideoRankItem = ({ rank, title, views, channel, img }: any) => {
+const VideoRankItem = ({ rank, title, views, channel, img, url }: any) => {
   const [hasError, setHasError] = useState(false);
 
   return (
-    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[28px] border dark:border-slate-800 group hover:shadow-lg transition-all min-h-[112px]">
+    <a 
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[28px] border dark:border-slate-800 group hover:shadow-lg transition-all min-h-[112px] cursor-pointer block no-underline"
+    >
       <div className="relative shrink-0">
-        <span className="absolute -top-2 -left-2 w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black z-10 shadow-lg">
+        <span className="absolute -top-2 -left-2 w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black z-10 shadow-lg group-hover:bg-red-600 transition-colors">
           {rank}
         </span>
         <div className="w-32 h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center">
@@ -267,7 +274,7 @@ const VideoRankItem = ({ rank, title, views, channel, img }: any) => {
           <p className="text-[10px] font-black text-red-600 shrink-0">+{views}</p>
         </div>
       </div>
-    </div>
+    </a>
   );
 };
 
