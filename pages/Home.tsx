@@ -100,7 +100,7 @@ const Home: React.FC = () => {
                 <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                 <Bar dataKey="value" radius={[10, 10, 10, 10]} barSize={40}>
                   {CATEGORY_STATS.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                    <Cell key={` cell-${index}`} fill={entry.color} fillOpacity={0.8} />
                   ))}
                 </Bar>
               </BarChart>
@@ -177,14 +177,14 @@ const Home: React.FC = () => {
               title="ILLIT (아일릿) 'Sunday Morning' Official MV" 
               views="4.9백만" 
               channel="HYBE LABELS" 
-              img="https://images.unsplash.com/photo-1614680376593-902f74cc0d41?w=400&h=225&fit=crop"
+              img="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=225&fit=crop"
             />
             <VideoRankItem 
               rank={2} 
               title="2026년에는 대한민국의 새로운 도약이 시작됩니다" 
               views="3.6백만" 
               channel="대한민국정부" 
-              img="https://images.unsplash.com/photo-1590422410881-224419813271?w=400&h=225&fit=crop"
+              img="https://images.unsplash.com/photo-1541873676947-95a272d6bb70?w=400&h=225&fit=crop"
             />
           </div>
         </div>
@@ -235,29 +235,40 @@ const Home: React.FC = () => {
   );
 };
 
-const VideoRankItem = ({ rank, title, views, channel, img }: any) => (
-  <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[28px] border dark:border-slate-800 group hover:shadow-lg transition-all">
-    <div className="relative shrink-0">
-      <span className="absolute -top-2 -left-2 w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black z-10 shadow-lg">
-        {rank}
-      </span>
-      <div className="w-32 h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm group-hover:scale-105 transition-transform">
-        <img 
-          src={img} 
-          className="w-full h-full object-cover block" 
-          alt={title} 
-          loading="lazy"
-        />
+const VideoRankItem = ({ rank, title, views, channel, img }: any) => {
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[28px] border dark:border-slate-800 group hover:shadow-lg transition-all min-h-[112px]">
+      <div className="relative shrink-0">
+        <span className="absolute -top-2 -left-2 w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black z-10 shadow-lg">
+          {rank}
+        </span>
+        <div className="w-32 h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center">
+          {hasError ? (
+            <PlayCircle className="text-slate-300 dark:text-slate-600" size={32} />
+          ) : (
+            <img 
+              src={img} 
+              className="w-full h-full object-cover block" 
+              alt="" 
+              loading="lazy"
+              onError={() => setHasError(true)}
+            />
+          )}
+        </div>
+      </div>
+      <div className="flex-1 space-y-1 min-w-0">
+        <p className="text-xs font-black text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-600 transition-colors">
+          {title}
+        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate mr-2">{channel}</p>
+          <p className="text-[10px] font-black text-red-600 shrink-0">+{views}</p>
+        </div>
       </div>
     </div>
-    <div className="flex-1 space-y-1 min-w-0">
-      <p className="text-xs font-black text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-600 transition-colors">{title}</p>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate mr-2">{channel}</p>
-        <p className="text-[10px] font-black text-red-600 shrink-0">+{views}</p>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 export default Home;
