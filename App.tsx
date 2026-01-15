@@ -13,7 +13,12 @@ import {
   Sun,
   Mail,
   MapPin,
-  Phone
+  Phone,
+  DollarSign,
+  Radio,
+  Trophy,
+  UserPlus,
+  PlayCircle
 } from 'lucide-react';
 import Home from './pages/Home.tsx';
 import Ranking from './pages/Ranking.tsx';
@@ -21,6 +26,7 @@ import ChannelDetail from './pages/ChannelDetail.tsx';
 import Compare from './pages/Compare.tsx';
 import Settings from './pages/Settings.tsx';
 import SidebarItem from './components/SidebarItem.tsx';
+import SidebarSection from './components/SidebarSection.tsx';
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -58,6 +64,10 @@ const App: React.FC = () => {
     document.title = subTitle ? `${subTitle} | ${baseTitle}` : baseTitle;
   }, [location.pathname]);
 
+  const isActiveRanking = (query: string) => {
+    return location.pathname === '/ranking' && location.search.includes(encodeURIComponent(query));
+  };
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       <header className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-50">
@@ -89,9 +99,19 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4 md:mt-0">
+        <nav className="flex-1 px-4 space-y-1 mt-4 md:mt-0 overflow-y-auto custom-scrollbar">
+          <SidebarSection label="Main" />
           <SidebarItem to="/" icon={LayoutDashboard} label="대시보드" active={location.pathname === '/'} />
-          <SidebarItem to="/ranking" icon={BarChart3} label="채널 랭킹" active={location.pathname === '/ranking'} />
+          
+          <SidebarSection label="Analytics & Rank" />
+          <SidebarItem to="/ranking" icon={BarChart3} label="전체 채널 랭킹" active={location.pathname === '/ranking' && !location.search} />
+          <SidebarItem to="/ranking?q=슈퍼챗" icon={DollarSign} label="슈퍼챗 순위" active={isActiveRanking('슈퍼챗')} />
+          <SidebarItem to="/ranking?q=라이브" icon={Radio} label="라이브 시청자" active={isActiveRanking('라이브')} />
+          <SidebarItem to="/ranking?q=인기" icon={Trophy} label="인기 순위" active={isActiveRanking('인기')} />
+          <SidebarItem to="/ranking?q=급상승" icon={UserPlus} label="구독자 급상승" active={isActiveRanking('급상승')} />
+          <SidebarItem to="/ranking?q=최다조회" icon={PlayCircle} label="최다 조회 영상" active={isActiveRanking('최다조회')} />
+          
+          <SidebarSection label="Tools" />
           <SidebarItem to="/compare" icon={Copy} label="채널 비교" active={location.pathname === '/compare'} />
           <SidebarItem to="/settings" icon={SettingsIcon} label="설정" active={location.pathname === '/settings'} />
         </nav>

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, TrendingUp, Star, BarChart3, ChevronRight, Zap, Flame, DollarSign, Radio, PlayCircle, Layers, Trophy, UserPlus, TrendingDown, Minus } from 'lucide-react';
+import { Search, TrendingUp, Star, BarChart3, ChevronRight, Zap, Flame, DollarSign, Radio, PlayCircle, Layers, Trophy, UserPlus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
@@ -8,6 +8,8 @@ import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'rechar
 import RisingItem from '../components/RisingItem.tsx';
 import TopicChart from '../components/TopicChart.tsx';
 import ServiceStats from '../components/ServiceStats.tsx';
+import RankingBoard from '../components/RankingBoard.tsx';
+import RankingRow from '../components/RankingRow.tsx';
 
 const CATEGORY_STATS = [
   { name: '국뽕', value: 85, color: '#ef4444' },
@@ -24,7 +26,6 @@ const TOPIC_CHARTS = [
   { category: '캠핑', items: [{ rank: 1, title: 'RYUCAMP', change: 29 }, { rank: 2, title: '캠핑제국', change: 'NEW' }, { rank: 3, title: '김숙티비', change: 1 }] },
 ];
 
-// Mock Avatar URLs for Demo
 const MOCK_AVATARS = [
   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop",
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
@@ -94,7 +95,7 @@ const Home: React.FC = () => {
           </div>
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={CATEGORY_STATS}>
+              <BarChart chart={BarChart} data={CATEGORY_STATS}>
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 'bold' }} />
                 <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                 <Bar dataKey="value" radius={[10, 10, 10, 10]} barSize={40}>
@@ -130,83 +131,45 @@ const Home: React.FC = () => {
 
       {/* Main Rank Boards (Row 1) */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {/* 슈퍼챗 순위 */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-black text-lg flex items-center gap-2 dark:text-white"><DollarSign className="text-emerald-500" /> 슈퍼챗 순위</h3>
-            <div className="flex gap-2">
-               <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded uppercase tracking-widest">일간</span>
-               <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/10 px-2 py-0.5 rounded uppercase tracking-widest">주간</span>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <RankRow rank={1} title="다썰남TV" value="₩2,843,243" color="text-red-500" img={MOCK_AVATARS[0]} prefix="+" />
-            <RankRow rank={2} title="진격의 변호사들" value="₩2,210,175" color="text-red-500" img={MOCK_AVATARS[1]} prefix="+" />
-            <RankRow rank={3} title="수와진 안상수tv" value="₩2,016,155" color="text-red-500" img={MOCK_AVATARS[2]} prefix="+" />
-            <RankRow rank={4} title="백곰사령관" value="₩1,886,015" color="text-red-500" img={MOCK_AVATARS[3]} prefix="+" />
-            <RankRow rank={5} title="만산월 만산마법사" value="₩1,754,265" color="text-red-500" img={MOCK_AVATARS[4]} prefix="+" />
-          </div>
-          <div className="flex justify-center pt-2"><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div></div>
-        </div>
+        <RankingBoard title="슈퍼챗 순위" icon={DollarSign} iconColor="text-emerald-500" filterLabel="주간" link="/ranking?q=슈퍼챗">
+          <RankingRow rank={1} title="다썰남TV" value="₩2,843,243" color="text-red-500" img={MOCK_AVATARS[0]} prefix="+" />
+          <RankingRow rank={2} title="진격의 변호사들" value="₩2,210,175" color="text-red-500" img={MOCK_AVATARS[1]} prefix="+" />
+          <RankingRow rank={3} title="수와진 안상수tv" value="₩2,016,155" color="text-red-500" img={MOCK_AVATARS[2]} prefix="+" />
+          <RankingRow rank={4} title="백곰사령관" value="₩1,886,015" color="text-red-500" img={MOCK_AVATARS[3]} prefix="+" />
+          <RankingRow rank={5} title="만산월 만산마법사" value="₩1,754,265" color="text-red-500" img={MOCK_AVATARS[4]} prefix="+" />
+        </RankingBoard>
 
-        {/* 라이브 시청자 순위 */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-black text-lg flex items-center gap-2 dark:text-white"><Radio className="text-red-500" /> 라이브 시청자</h3>
-            <div className="flex gap-2">
-               <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/10 px-2 py-0.5 rounded uppercase tracking-widest">방송중</span>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <RankRow rank={1} title="김어준의 겸손은힘들다" value="265,587명" color="text-red-600" img={MOCK_AVATARS[4]} />
-            <RankRow rank={2} title="[팟빵] 최욱의 매불쇼" value="202,007명" color="text-red-600" img={MOCK_AVATARS[3]} />
-            <RankRow rank={3} title="사장남천동" value="75,980명" color="text-red-600" img={MOCK_AVATARS[2]} />
-            <RankRow rank={4} title="MBCNEWS" value="51,518명" color="text-red-600" img={MOCK_AVATARS[1]} />
-            <RankRow rank={5} title="오선의 미국 증시" value="46,372명" color="text-red-600" img={MOCK_AVATARS[0]} />
-          </div>
-          <div className="flex justify-center pt-2"><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div></div>
-        </div>
+        <RankingBoard title="라이브 시청자" icon={Radio} iconColor="text-red-500" filterLabel="방송중" link="/ranking?q=라이브">
+          <RankingRow rank={1} title="김어준의 겸손은힘들다" value="265,587명" color="text-red-600" img={MOCK_AVATARS[4]} />
+          <RankingRow rank={2} title="[팟빵] 최욱의 매불쇼" value="202,007명" color="text-red-600" img={MOCK_AVATARS[3]} />
+          <RankingRow rank={3} title="사장남천동" value="75,980명" color="text-red-600" img={MOCK_AVATARS[2]} />
+          <RankingRow rank={4} title="MBCNEWS" value="51,518명" color="text-red-600" img={MOCK_AVATARS[1]} />
+          <RankingRow rank={5} title="오선의 미국 증시" value="46,372명" color="text-red-600" img={MOCK_AVATARS[0]} />
+        </RankingBoard>
 
-        {/* 인기 순위 */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-black text-lg flex items-center gap-2 dark:text-white"><Trophy className="text-yellow-500" /> 인기 순위</h3>
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded uppercase tracking-widest">일간</span>
-          </div>
-          <div className="space-y-4">
-            <RankRow rank={1} title="MBCNEWS" value="-" color="text-slate-400" img={MOCK_AVATARS[1]} />
-            <RankRow rank={2} title="SBS 뉴스" value="1" color="text-red-500" img={MOCK_AVATARS[2]} trend="up" />
-            <RankRow rank={3} title="JTBC News" value="1" color="text-red-500" img={MOCK_AVATARS[0]} trend="up" />
-            <RankRow rank={4} title="Rumi-KPOP" value="1" color="text-red-500" img={MOCK_AVATARS[3]} trend="up" />
-            <RankRow rank={5} title="HYBE LABELS" value="3" color="text-blue-500" img={MOCK_AVATARS[4]} trend="down" />
-          </div>
-          <div className="flex justify-center pt-2"><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div></div>
-        </div>
+        <RankingBoard title="인기 순위" icon={Trophy} iconColor="text-yellow-500" filterLabel="일간" link="/ranking?q=인기">
+          <RankingRow rank={1} title="MBCNEWS" value="-" color="text-slate-400" img={MOCK_AVATARS[1]} />
+          <RankingRow rank={2} title="SBS 뉴스" value="1" color="text-red-500" img={MOCK_AVATARS[2]} trend="up" />
+          <RankingRow rank={3} title="JTBC News" value="1" color="text-red-500" img={MOCK_AVATARS[0]} trend="up" />
+          <RankingRow rank={4} title="Rumi-KPOP" value="1" color="text-red-500" img={MOCK_AVATARS[3]} trend="up" />
+          <RankingRow rank={5} title="HYBE LABELS" value="3" color="text-blue-500" img={MOCK_AVATARS[4]} trend="down" />
+        </RankingBoard>
       </section>
 
       {/* Main Rank Boards (Row 2) */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 구독자 급상승 순위 */}
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-black text-lg flex items-center gap-2 dark:text-white"><UserPlus className="text-blue-500" /> 구독자 급상승</h3>
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded uppercase tracking-widest">주간</span>
-          </div>
-          <div className="space-y-4">
-            <RankRow rank={1} title="LNGSHOT" value="26,000명" color="text-red-500" img={MOCK_AVATARS[3]} prefix="+" />
-            <RankRow rank={2} title="임성근 임짱TV" value="23,000명" color="text-red-500" img={MOCK_AVATARS[4]} prefix="+" />
-            <RankRow rank={3} title="셰프 안성재 Chef" value="20,000명" color="text-red-500" img={MOCK_AVATARS[0]} prefix="+" />
-            <RankRow rank={4} title="Lovely Healing" value="12,000명" color="text-red-500" img={MOCK_AVATARS[2]} prefix="+" />
-            <RankRow rank={5} title="최강록 Ultra Taste" value="12,000명" color="text-red-500" img={MOCK_AVATARS[1]} prefix="+" />
-          </div>
-          <div className="flex justify-center pt-2"><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div><div className="w-1 h-1 bg-slate-200 rounded-full mx-0.5"></div></div>
-        </div>
+        <RankingBoard title="구독자 급상승" icon={UserPlus} iconColor="text-blue-500" filterLabel="주간" link="/ranking?q=급상승">
+          <RankingRow rank={1} title="LNGSHOT" value="26,000명" color="text-red-500" img={MOCK_AVATARS[3]} prefix="+" />
+          <RankingRow rank={2} title="임성근 임짱TV" value="23,000명" color="text-red-500" img={MOCK_AVATARS[4]} prefix="+" />
+          <RankingRow rank={3} title="셰프 안성재 Chef" value="20,000명" color="text-red-500" img={MOCK_AVATARS[0]} prefix="+" />
+          <RankingRow rank={4} title="Lovely Healing" value="12,000명" color="text-red-500" img={MOCK_AVATARS[2]} prefix="+" />
+          <RankingRow rank={5} title="최강록 Ultra Taste" value="12,000명" color="text-red-500" img={MOCK_AVATARS[1]} prefix="+" />
+        </RankingBoard>
 
-        {/* 최다 조회 영상 */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between border-b dark:border-slate-800 pb-4">
             <h2 className="text-2xl font-black flex items-center gap-2 dark:text-white"><PlayCircle className="text-red-600" /> 최다 조회 영상</h2>
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full uppercase tracking-widest">Weekly Global</span>
+            <Link to="/ranking?q=최다조회" className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full uppercase tracking-widest hover:text-red-500 transition-colors">Weekly Global</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <VideoRankItem 
@@ -227,7 +190,7 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Topic Charts (AI 분류) */}
+      {/* Topic Charts */}
       <section className="space-y-6">
         <div className="flex items-center justify-between border-b dark:border-slate-800 pb-4">
           <h2 className="text-2xl font-black flex items-center gap-2 dark:text-white"><Layers className="text-purple-500" /> 토픽 차트</h2>
@@ -248,7 +211,7 @@ const Home: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {favoriteChannels.map((channel) => (
               <Link key={channel.id} to={`/channel/${channel.id}`} className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-red-100 dark:hover:border-red-900 transition-all group flex flex-col items-center text-center gap-3">
-                <img src={channel.snippet.thumbnails.default.url} className="w-16 h-16 rounded-[20px] shadow-md group-hover:scale-105 transition-transform" />
+                <img src={channel.snippet.thumbnails.default.url} className="w-16 h-16 rounded-[20px] shadow-md group-hover:scale-105 transition-transform" alt="" />
                 <p className="text-slate-900 dark:text-slate-200 font-black truncate w-full px-2 tracking-tight">{channel.snippet.title}</p>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">구독자 {formatCount(channel.statistics.subscriberCount)}명</p>
               </Link>
@@ -272,31 +235,13 @@ const Home: React.FC = () => {
   );
 };
 
-const RankRow = ({ rank, title, value, color, img, prefix, trend }: any) => (
-  <div className="flex items-center justify-between py-2 border-b dark:border-slate-800 last:border-0 group cursor-default">
-    <div className="flex items-center gap-3">
-      <span className="text-xs font-black text-slate-400 w-5 text-center group-hover:text-red-500 transition-colors">{rank}</span>
-      <div className="w-6 h-6 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm">
-        <img src={img} className="w-full h-full object-cover" alt="" />
-      </div>
-      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[130px] group-hover:underline">{title}</span>
-    </div>
-    <div className="flex items-center gap-1">
-      {trend === 'up' && <TrendingUp size={10} className="text-red-500" />}
-      {trend === 'down' && <TrendingDown size={10} className="text-blue-500" />}
-      {trend === 'none' && <Minus size={10} className="text-slate-300" />}
-      <span className={`text-[11px] font-black ${color}`}>{prefix}{value}</span>
-    </div>
-  </div>
-);
-
 const VideoRankItem = ({ rank, title, views, channel, img }: any) => (
   <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[28px] border dark:border-slate-800 group hover:shadow-lg transition-all">
     <div className="relative">
       <span className="absolute -top-2 -left-2 w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black z-10 shadow-lg">
         {rank}
       </span>
-      <img src={img} className="w-32 h-20 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform" />
+      <img src={img} className="w-32 h-20 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform" alt="" />
     </div>
     <div className="flex-1 space-y-1">
       <p className="text-xs font-black text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-600 transition-colors">{title}</p>
