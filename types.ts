@@ -27,6 +27,11 @@ export interface YouTubeChannel {
       uploads: string;
     };
   };
+  brandingSettings?: {
+    channel?: {
+      keywords?: string;
+    };
+  };
 }
 
 export interface YouTubeVideo {
