@@ -1,10 +1,12 @@
 
 import React, { useEffect } from 'react';
-import { Trash2, Info, Moon, Sun } from 'lucide-react';
+import { Trash2, Info, Moon, Sun, Globe, Banknote } from 'lucide-react';
 import InfoRow from '../components/InfoRow.tsx';
 
 const Settings: React.FC = () => {
   const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem('theme') === 'dark');
+  const [language, setLanguage] = React.useState('ko');
+  const [currency, setCurrency] = React.useState('KRW');
 
   const toggleDarkMode = () => {
     const next = !darkMode;
@@ -43,6 +45,7 @@ const Settings: React.FC = () => {
       </header>
 
       <div className="space-y-4">
+        {/* 테마 설정 */}
         <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
@@ -59,6 +62,39 @@ const Settings: React.FC = () => {
           <p className="text-xs text-slate-500 font-medium leading-relaxed">눈의 피로를 줄이기 위해 다크 모드를 지원합니다.</p>
         </section>
 
+        {/* 글로벌 설정 */}
+        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 mb-2">
+            <Globe size={18} className="text-blue-500" />
+            <span>지역 및 언어</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Language</label>
+              <select 
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-xl text-sm font-bold outline-none"
+              >
+                <option value="ko">한국어 (Korean)</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Currency</label>
+              <select 
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 rounded-xl text-sm font-bold outline-none"
+              >
+                <option value="KRW">KRW (₩)</option>
+                <option value="USD">USD ($)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        {/* 데이터 관리 */}
         <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
             <Trash2 size={18} className="text-red-500" />
@@ -69,15 +105,16 @@ const Settings: React.FC = () => {
           </button>
         </section>
 
+        {/* 서비스 정보 */}
         <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
             <Info size={18} className="text-blue-500" />
             <span>서비스 정보</span>
           </div>
           <div className="space-y-3">
-            <InfoRow label="버전" value="v1.1.0 (Advanced)" />
+            <InfoRow label="버전" value="v1.2.0 (Pro)" />
             <InfoRow label="데이터 출처" value="YouTube Data API v3" />
-            <InfoRow label="주요 기능" value="AI 떡상 예보, 쇼츠 분석" />
+            <InfoRow label="주요 기능" value="슈퍼챗/라이브/토픽 분석" />
           </div>
         </section>
       </div>

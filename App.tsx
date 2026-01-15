@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -10,7 +10,10 @@ import {
   Menu,
   X,
   Moon,
-  Sun
+  Sun,
+  Mail,
+  MapPin,
+  Phone
 } from 'lucide-react';
 import Home from './pages/Home.tsx';
 import Ranking from './pages/Ranking.tsx';
@@ -93,8 +96,8 @@ const App: React.FC = () => {
           <SidebarItem to="/settings" icon={SettingsIcon} label="설정" active={location.pathname === '/settings'} />
         </nav>
 
-        <div className="p-4 border-t dark:border-slate-800 text-xs text-slate-400 text-center">
-          &copy; 2024 YouRank Analytics
+        <div className="p-4 border-t dark:border-slate-800 text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">
+          Analytic Solutions
         </div>
       </aside>
 
@@ -102,14 +105,63 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 dark:text-slate-200">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/ranking" element={<Ranking />} />
-          <Route path="/channel/:id" element={<ChannelDetail />} />
-          <Route path="/compare" element={<Compare />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
+      <main className="flex-1 flex flex-col overflow-y-auto">
+        <div className="flex-1 p-4 md:p-8 dark:text-slate-200">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/ranking" element={<Ranking />} />
+            <Route path="/channel/:id" element={<ChannelDetail />} />
+            <Route path="/compare" element={<Compare />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </div>
+
+        {/* Global Footer */}
+        <footer className="bg-white dark:bg-slate-900 border-t dark:border-slate-800 py-12 px-8">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 font-bold text-red-600 text-2xl">
+                <Youtube size={24} />
+                <span>YouRank</span>
+              </div>
+              <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                전 세계 2.3천만 유튜브 채널을 전문가용 필터로 <br className="hidden sm:block" /> 검색하고 데이터 기반으로 분석하세요.
+              </p>
+              <div className="flex gap-4">
+                <Link to="/settings" className="text-xs font-bold text-slate-500 hover:text-red-600">서비스 이용약관</Link>
+                <Link to="/settings" className="text-xs font-bold text-slate-500 hover:text-red-600">개인정보 처리방침</Link>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h5 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Contact Info</h5>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Mail size={14} className="text-red-500" />
+                  <span>support@yourank.io</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Phone size={14} className="text-slate-400" />
+                  <span>1668-3054 (유료)</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <MapPin size={14} className="text-slate-400" />
+                  <span className="leading-tight text-xs">서울특별시 강남구 테헤란로79길 6, 5층 브이852호</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h5 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Company Info</h5>
+              <div className="space-y-1 text-[11px] text-slate-400 leading-5">
+                <p>회사명 : (주)디프닷 | 대표 : 왕효근</p>
+                <p>사업자등록번호 : 841-86-01821</p>
+                <p>통신판매업신고번호 : 제2022-서울강남-05034호</p>
+                <p className="mt-4 font-black">© 2026 DIFF., Inc. All Rights Reserved</p>
+              </div>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
