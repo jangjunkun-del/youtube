@@ -79,7 +79,6 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
   }
 };
 
-// 메타데이터 가중치를 고려한 카테고리 리스트
 const CATEGORIES = [
   { label: '🌐 전체', value: '채널' },
   { label: '💻 IT/테크', value: 'IT 테크 전자 기기' },
@@ -216,19 +215,26 @@ const Ranking: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[40px] shadow-2xl overflow-hidden border-slate-100">
         <div className="p-6 border-b dark:border-slate-800 flex flex-wrap items-center justify-between bg-slate-50/30 dark:bg-slate-800/20 gap-4">
           <div className="flex items-center gap-2.5">
-            {(['subscriber', 'view', 'efficiency'] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setSortBy(type)}
-                className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all border-2 ${
-                  sortBy === type 
-                  ? 'bg-slate-900 dark:bg-red-600 border-slate-900 dark:border-red-600 text-white shadow-lg' 
-                  : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-300'
-                }`}
-              >
-                {type === 'subscriber' ? '구독자순' : type === 'view' ? '조회수순' : '잠재력순'}
-              </button>
-            ))}
+            {typeParam === 'overall' ? (
+              (['subscriber', 'view', 'efficiency'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setSortBy(type)}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all border-2 ${
+                    sortBy === type 
+                    ? 'bg-slate-900 dark:bg-red-600 border-slate-900 dark:border-red-600 text-white shadow-lg' 
+                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  {type === 'subscriber' ? '구독자순' : type === 'view' ? '조회수순' : '잠재력순'}
+                </button>
+              ))
+            ) : (
+              <div className="flex items-center gap-2 text-xs font-black text-slate-400 px-2 py-1">
+                <config.icon size={16} />
+                <span className="uppercase tracking-widest">{config.title} 특화 정렬 적용됨</span>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-4">
