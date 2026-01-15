@@ -7,6 +7,7 @@ import { Search, Loader2, TrendingUp, Zap, MousePointer2, ListOrdered, ExternalL
 import { YouTubeChannel } from '../types.ts';
 
 const CATEGORIES = [
+  { label: '🌐 전체', value: '채널' },
   { label: '💻 IT/테크', value: 'IT 테크' },
   { label: '🎮 게임', value: '게임' },
   { label: '🍳 먹방/요리', value: '먹방 요리' },
@@ -40,7 +41,7 @@ const Ranking: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const qFromUrl = searchParams.get('q');
-  const queryParam = qFromUrl || 'IT 테크'; 
+  const queryParam = qFromUrl || '채널'; 
   const sizeParam = parseInt(searchParams.get('size') || '10');
   
   const [keyword, setKeyword] = useState(qFromUrl || '');
