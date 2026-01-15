@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { Search, TrendingUp, Users, PlayCircle, Star, BarChart3, ChevronRight, Loader2, Zap, Flame } from 'lucide-react';
+import { Search, TrendingUp, Star, BarChart3, ChevronRight, Zap, Flame } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import RisingItem from '../components/RisingItem.tsx';
 
 const CATEGORY_STATS = [
   { name: '국뽕', value: 85, color: '#ef4444' },
@@ -24,7 +25,7 @@ const Home: React.FC = () => {
   };
 
   const favorites: string[] = JSON.parse(localStorage.getItem('favorites') || '[]');
-  const { data: favoriteChannels, isLoading: isFavLoading } = useQuery({
+  const { data: favoriteChannels } = useQuery({
     queryKey: ['favoriteChannels', favorites.join(',')],
     queryFn: () => youtubeApi.getChannelsByIds(favorites.join(',')),
     enabled: favorites.length > 0,
@@ -66,9 +67,8 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Feature Section: 2. 떡상 예보 (Rising Stars) & 4. 카테고리 포화도 */}
+      {/* Feature Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Category Saturation Heatmap (Feature 4) */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="font-black text-xl flex items-center gap-2 dark:text-white"><BarChart3 className="text-blue-500" /> 분야별 포화도 (HOT)</h3>
@@ -90,7 +90,6 @@ const Home: React.FC = () => {
           <p className="text-xs text-slate-400 text-center font-medium italic">조회수 대비 채널 경쟁도 지표 (높을수록 경쟁 치열)</p>
         </div>
 
-        {/* Rising Stars Preview (Feature 2) */}
         <div className="bg-slate-900 dark:bg-slate-900 p-8 rounded-[32px] text-white shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform">
             <Flame size={120} />
@@ -116,7 +115,7 @@ const Home: React.FC = () => {
         <div className="flex items-center justify-between border-b dark:border-slate-800 pb-4">
           <h2 className="text-2xl font-black flex items-center gap-2 dark:text-white"><Star className="text-yellow-400 fill-yellow-400" /> 관심 분석 채널</h2>
         </div>
-        {favorites.length > 0 && favoriteChannels && (
+        {favorites && favorites.length > 0 && favoriteChannels && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {favoriteChannels.map((channel) => (
               <Link key={channel.id} to={`/channel/${channel.id}`} className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-red-100 dark:hover:border-red-900 transition-all group flex flex-col items-center text-center gap-3">
@@ -127,7 +126,7 @@ const Home: React.FC = () => {
             ))}
           </div>
         )}
-        {favorites.length === 0 && (
+        {(!favorites || favorites.length === 0) && (
           <div className="bg-white dark:bg-slate-900 p-12 rounded-[32px] border-2 border-dashed border-slate-100 dark:border-slate-800 text-center text-slate-400">
             <p className="font-medium">즐겨찾는 채널이 없습니다. 검색을 통해 채널을 추가해보세요!</p>
           </div>
@@ -136,23 +135,5 @@ const Home: React.FC = () => {
     </div>
   );
 };
-
-const RisingItem = ({ rank, name, score, cate }: any) => (
-  <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
-    <div className="flex items-center gap-4">
-      <span className="text-lg font-black italic text-red-500">{rank}</span>
-      <div>
-        <p className="font-bold text-sm">{name}</p>
-        <p className="text-[10px] text-slate-500 font-black uppercase">{cate}</p>
-      </div>
-    </div>
-    <div className="text-right">
-      <p className="text-xs font-black text-red-400">{score}점</p>
-      <div className="w-12 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
-        <div className="h-full bg-red-500" style={{ width: `${score}%` }}></div>
-      </div>
-    </div>
-  </div>
-);
 
 export default Home;

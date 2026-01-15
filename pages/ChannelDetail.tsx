@@ -4,9 +4,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
 import { 
-  Users, PlayCircle, BarChart, Heart, Loader2, ChevronLeft, Star, Coins, TrendingUp, Zap, Info, Calendar, Youtube, RefreshCw, AlertCircle, Clock, PieChart
+  Loader2, ChevronLeft, Star, TrendingUp, Zap, Clock, PieChart, Play, Calendar
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import MetricCard from '../components/MetricCard.tsx';
 
 const parseISO8601Duration = (duration: string) => {
   const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
@@ -14,6 +15,15 @@ const parseISO8601Duration = (duration: string) => {
   const minutes = (parseInt(match?.[2] || '0') || 0);
   const seconds = (parseInt(match?.[3] || '0') || 0);
   return hours * 3600 + minutes * 60 + seconds;
+};
+
+const formatDuration = (duration: string) => {
+  const seconds = parseISO8601Duration(duration);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
 const ChannelDetail: React.FC = () => {
@@ -31,7 +41,6 @@ const ChannelDetail: React.FC = () => {
     enabled: !!channelData,
   });
 
-  // 6. 유사 채널 추천 (채널명을 검색어로 사용)
   const { data: similarChannels } = useQuery({
     queryKey: ['similarChannels', channelData?.snippet.title],
     queryFn: () => youtubeApi.searchChannels(channelData!.snippet.title, 4),
@@ -46,12 +55,9 @@ const ChannelDetail: React.FC = () => {
   if (channelLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-red-600" size={48} /></div>;
   if (!channelData) return <div className="p-20 text-center">채널 정보 없음</div>;
 
-  // 3. 쇼츠 vs 일반 영상 비중 분석
   const shortsCount = videos?.filter(v => parseISO8601Duration(v.contentDetails.duration) <= 60).length || 0;
-  const longFormCount = (videos?.length || 0) - shortsCount;
   const shortsRatio = Math.round((shortsCount / (videos?.length || 1)) * 100);
 
-  // 5. 업로드 주기 진단
   let frequencyLabel = "진단 중...";
   if (videos && videos.length >= 2) {
     const firstDate = new Date(videos[videos.length - 1].snippet.publishedAt).getTime();
@@ -101,7 +107,6 @@ const ChannelDetail: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Analysis Graph */}
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
             <h3 className="text-lg font-black flex items-center gap-2"><TrendingUp className="text-red-500" /> 최근 조회수 추이</h3>
             <div className="h-64 w-full">
@@ -119,7 +124,45 @@ const ChannelDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Similar Channels (Feature 6) */}
+          <section className="space-y-4">
+            <h3 className="text-lg font-black flex items-center gap-2"><Play className="text-red-500" /> 최근 업로드 동영상</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {videosLoading ? (
+                Array(6).fill(0).map((_, i) => (
+                  <div key={i} className="h-48 bg-slate-100 dark:bg-slate-800 rounded-[24px] animate-pulse"></div>
+                ))
+              ) : (
+                videos?.slice(0, 6).map(video => (
+                  <a 
+                    key={video.id} 
+                    href={`https://www.youtube.com/watch?v=${video.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[24px] overflow-hidden group hover:shadow-lg transition-all"
+                  >
+                    <div className="relative aspect-video">
+                      <img src={video.snippet.thumbnails.medium.url} className="w-full h-full object-cover" />
+                      <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-black px-1.5 py-0.5 rounded">
+                        {formatDuration(video.contentDetails.duration)}
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-1">
+                      <p className="font-bold text-sm text-slate-900 dark:text-slate-200 line-clamp-2 leading-snug group-hover:text-red-600 transition-colors">
+                        {video.snippet.title}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-bold">
+                        <Calendar size={10} />
+                        {new Date(video.snippet.publishedAt).toLocaleDateString()}
+                        <span className="mx-1">•</span>
+                        <span>조회수 {formatNumber(video.statistics.viewCount)}회</span>
+                      </div>
+                    </div>
+                  </a>
+                ))
+              )}
+            </div>
+          </section>
+
           <section className="space-y-4">
             <h3 className="text-lg font-black flex items-center gap-2"><Zap className="text-yellow-500" /> 유사한 분석 채널 추천</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -152,13 +195,5 @@ const ChannelDetail: React.FC = () => {
     </div>
   );
 };
-
-const MetricCard = ({ label, value, color, bg }: any) => (
-  <div className={`p-6 rounded-[28px] border dark:border-slate-800 shadow-sm flex flex-col gap-1 bg-white dark:bg-slate-900`}>
-    <div className={`${bg} ${color} w-fit p-1.5 rounded-lg mb-2`}><BarChart size={16} /></div>
-    <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">{label}</p>
-    <p className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
-  </div>
-);
 
 export default ChannelDetail;

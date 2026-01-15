@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BarChart3, 
@@ -17,20 +17,7 @@ import Ranking from './pages/Ranking.tsx';
 import ChannelDetail from './pages/ChannelDetail.tsx';
 import Compare from './pages/Compare.tsx';
 import Settings from './pages/Settings.tsx';
-
-const SidebarItem = ({ to, icon: Icon, label, active }: { to: string, icon: any, label: string, active: boolean }) => (
-  <Link
-    to={to}
-    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-      active 
-        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-semibold shadow-sm' 
-        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
-    }`}
-  >
-    <Icon size={20} />
-    <span>{label}</span>
-  </Link>
-);
+import SidebarItem from './components/SidebarItem.tsx';
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -38,14 +25,23 @@ const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
   useEffect(() => {
+    const root = window.document.documentElement;
     if (darkMode) {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setDarkMode(localStorage.getItem('theme') === 'dark');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -67,7 +63,7 @@ const App: React.FC = () => {
           <span>YouRank</span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-600 dark:text-slate-400">
+          <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-600 dark:text-slate-400">
@@ -85,7 +81,7 @@ const App: React.FC = () => {
             <Youtube size={32} />
             <span>YouRank</span>
           </div>
-          <button onClick={() => setDarkMode(!darkMode)} className="text-slate-400 hover:text-red-500 transition-colors">
+          <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </div>
