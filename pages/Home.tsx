@@ -237,17 +237,24 @@ const Home: React.FC = () => {
 
 const VideoRankItem = ({ rank, title, views, channel, img }: any) => (
   <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[28px] border dark:border-slate-800 group hover:shadow-lg transition-all">
-    <div className="relative">
+    <div className="relative shrink-0">
       <span className="absolute -top-2 -left-2 w-6 h-6 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black z-10 shadow-lg">
         {rank}
       </span>
-      <img src={img} className="w-32 h-20 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform" alt="" />
+      <div className="w-32 h-20 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm group-hover:scale-105 transition-transform">
+        <img 
+          src={img} 
+          className="w-full h-full object-cover block" 
+          alt={title} 
+          loading="lazy"
+        />
+      </div>
     </div>
-    <div className="flex-1 space-y-1">
+    <div className="flex-1 space-y-1 min-w-0">
       <p className="text-xs font-black text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-600 transition-colors">{title}</p>
       <div className="flex items-center justify-between">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{channel}</p>
-        <p className="text-[10px] font-black text-red-600">+{views}</p>
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate mr-2">{channel}</p>
+        <p className="text-[10px] font-black text-red-600 shrink-0">+{views}</p>
       </div>
     </div>
   </div>

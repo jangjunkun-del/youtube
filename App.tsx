@@ -64,8 +64,8 @@ const App: React.FC = () => {
     document.title = subTitle ? `${subTitle} | ${baseTitle}` : baseTitle;
   }, [location.pathname]);
 
-  const isActiveRanking = (query: string) => {
-    return location.pathname === '/ranking' && location.search.includes(encodeURIComponent(query));
+  const isActiveRanking = (type: string) => {
+    return location.pathname === '/ranking' && location.search.includes(`type=${type}`);
   };
 
   return (
@@ -90,10 +90,10 @@ const App: React.FC = () => {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="hidden md:flex items-center justify-between p-6 border-b dark:border-slate-800 mb-4">
-          <div className="flex items-center gap-2 font-bold text-red-600 text-2xl">
+          <Link to="/" className="flex items-center gap-2 font-bold text-red-600 text-2xl">
             <Youtube size={32} />
             <span>YouRank</span>
-          </div>
+          </Link>
           <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -104,12 +104,12 @@ const App: React.FC = () => {
           <SidebarItem to="/" icon={LayoutDashboard} label="대시보드" active={location.pathname === '/'} />
           
           <SidebarSection label="Analytics & Rank" />
-          <SidebarItem to="/ranking" icon={BarChart3} label="전체 채널 랭킹" active={location.pathname === '/ranking' && !location.search} />
-          <SidebarItem to="/ranking?q=슈퍼챗" icon={DollarSign} label="슈퍼챗 순위" active={isActiveRanking('슈퍼챗')} />
-          <SidebarItem to="/ranking?q=라이브" icon={Radio} label="라이브 시청자" active={isActiveRanking('라이브')} />
-          <SidebarItem to="/ranking?q=인기" icon={Trophy} label="인기 순위" active={isActiveRanking('인기')} />
-          <SidebarItem to="/ranking?q=급상승" icon={UserPlus} label="구독자 급상승" active={isActiveRanking('급상승')} />
-          <SidebarItem to="/ranking?q=최다조회" icon={PlayCircle} label="최다 조회 영상" active={isActiveRanking('최다조회')} />
+          <SidebarItem to="/ranking?type=overall" icon={BarChart3} label="전체 채널 랭킹" active={isActiveRanking('overall') || (location.pathname === '/ranking' && !location.search.includes('type='))} />
+          <SidebarItem to="/ranking?type=superchat" icon={DollarSign} label="슈퍼챗 순위" active={isActiveRanking('superchat')} />
+          <SidebarItem to="/ranking?type=live" icon={Radio} label="라이브 시청자" active={isActiveRanking('live')} />
+          <SidebarItem to="/ranking?type=popularity" icon={Trophy} label="인기 순위" active={isActiveRanking('popularity')} />
+          <SidebarItem to="/ranking?type=rising" icon={UserPlus} label="구독자 급상승" active={isActiveRanking('rising')} />
+          <SidebarItem to="/ranking?type=videos" icon={PlayCircle} label="최다 조회 영상" active={isActiveRanking('videos')} />
           
           <SidebarSection label="Tools" />
           <SidebarItem to="/compare" icon={Copy} label="채널 비교" active={location.pathname === '/compare'} />
