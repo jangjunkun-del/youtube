@@ -4,94 +4,38 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
 import { 
-  Users, 
-  PlayCircle, 
-  BarChart, 
-  Heart, 
-  Loader2,
-  ChevronLeft,
-  Star,
-  Coins,
-  TrendingUp,
-  Zap,
-  Info,
-  Calendar,
-  Youtube,
-  RefreshCw,
-  AlertCircle
+  Users, PlayCircle, BarChart, Heart, Loader2, ChevronLeft, Star, Coins, TrendingUp, Zap, Info, Calendar, Youtube, RefreshCw, AlertCircle, Clock, PieChart
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// 환율 API에서 데이터를 가져오는 함수
-const fetchExchangeRate = async (): Promise<number> => {
-  try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW');
-    const data = await res.json();
-    return data.rates.KRW || 1400;
-  } catch (error) {
-    console.warn('환율 API 호출 실패, 기본값(1400원)을 사용합니다.');
-    return 1400; // API 실패 시 현재 시세 반영
-  }
-};
-
-const formatNumber = (num: string | number) => {
-  const n = typeof num === 'string' ? parseInt(num, 10) : num;
-  if (isNaN(n)) return '0';
-  return n.toLocaleString();
-};
-
-const formatKRW = (usdAmount: number, rate: number) => {
-  const krw = usdAmount * rate;
-  if (krw >= 100000000) {
-    const value = (krw / 100000000).toFixed(1);
-    return `약 ${value}억원`;
-  }
-  if (krw >= 10000) {
-    const manValue = Math.floor(krw / 10000);
-    return `약 ${manValue.toLocaleString()}만원`;
-  }
-  return `₩${Math.round(krw).toLocaleString()}`;
-};
-
-const getViralGrade = (views: number, subscribers: number) => {
-  if (subscribers === 0) return { label: 'N/A', color: 'bg-slate-100 text-slate-400' };
-  const ratio = (views / subscribers) * 100;
-  if (ratio > 200) return { label: '폭발적(S+)', color: 'bg-purple-100 text-purple-700 ring-purple-200' };
-  if (ratio > 100) return { label: '매우높음(S)', color: 'bg-red-100 text-red-700 ring-red-200' };
-  if (ratio > 50) return { label: '우수(A)', color: 'bg-orange-100 text-orange-700 ring-orange-200' };
-  if (ratio > 20) return { label: '보통(B)', color: 'bg-green-100 text-green-700 ring-green-200' };
-  return { label: '정체기(C)', color: 'bg-blue-100 text-blue-700 ring-blue-200' };
+const parseISO8601Duration = (duration: string) => {
+  const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+  const hours = (parseInt(match?.[1] || '0') || 0);
+  const minutes = (parseInt(match?.[2] || '0') || 0);
+  const seconds = (parseInt(match?.[3] || '0') || 0);
+  return hours * 3600 + minutes * 60 + seconds;
 };
 
 const ChannelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [isFavorite, setIsFavorite] = React.useState(false);
 
-  // 실시간 환율 쿼리 추가
-  const { data: exchangeRate = 1400 } = useQuery({
-    queryKey: ['exchangeRate'],
-    queryFn: fetchExchangeRate,
-    staleTime: 1000 * 60 * 60, // 1시간 동안 캐시 유지
-  });
-
   const { data: channelData, isLoading: channelLoading } = useQuery({
     queryKey: ['channel', id],
     queryFn: () => youtubeApi.getChannelsByIds(id!).then(res => res[0]),
-    enabled: !!id,
   });
 
   const { data: videos, isLoading: videosLoading } = useQuery({
     queryKey: ['channelVideos', channelData?.contentDetails?.relatedPlaylists.uploads],
     queryFn: () => youtubeApi.getChannelVideos(channelData!.contentDetails!.relatedPlaylists.uploads),
-    enabled: !!channelData?.contentDetails?.relatedPlaylists.uploads,
+    enabled: !!channelData,
+  });
+
+  // 6. 유사 채널 추천 (채널명을 검색어로 사용)
+  const { data: similarChannels } = useQuery({
+    queryKey: ['similarChannels', channelData?.snippet.title],
+    queryFn: () => youtubeApi.searchChannels(channelData!.snippet.title, 4),
+    enabled: !!channelData,
   });
 
   React.useEffect(() => {
@@ -99,215 +43,109 @@ const ChannelDetail: React.FC = () => {
     setIsFavorite(favorites.includes(id));
   }, [id]);
 
-  const toggleFavorite = () => {
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    let nextFavs;
-    if (favorites.includes(id)) {
-      nextFavs = favorites.filter((fid: string) => fid !== id);
-      setIsFavorite(false);
-    } else {
-      nextFavs = [...favorites, id];
-      setIsFavorite(true);
-    }
-    localStorage.setItem('favorites', JSON.stringify(nextFavs));
-  };
-
   if (channelLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-red-600" size={48} /></div>;
-  if (!channelData) return <div className="p-20 text-center text-slate-500">채널 정보를 불러올 수 없습니다.</div>;
+  if (!channelData) return <div className="p-20 text-center">채널 정보 없음</div>;
 
-  const avgViews = videos ? videos.reduce((acc, v) => acc + parseInt(v.statistics.viewCount), 0) / videos.length : 0;
-  const subscriberCount = parseInt(channelData.statistics.subscriberCount);
-  const youtubeChannelUrl = `https://www.youtube.com/channel/${channelData.id}`;
-  
-  // Earnings Calculation (Based on $0.5 - $4.0 CPM)
-  const monthlyMaxUSD = (avgViews * 30 * 4.0) / 1000;
+  // 3. 쇼츠 vs 일반 영상 비중 분석
+  const shortsCount = videos?.filter(v => parseISO8601Duration(v.contentDetails.duration) <= 60).length || 0;
+  const longFormCount = (videos?.length || 0) - shortsCount;
+  const shortsRatio = Math.round((shortsCount / (videos?.length || 1)) * 100);
 
-  // Chart Data
-  const chartData = videos?.slice().reverse().map(v => ({
-    name: new Date(v.snippet.publishedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
-    views: parseInt(v.statistics.viewCount),
-  })) || [];
+  // 5. 업로드 주기 진단
+  let frequencyLabel = "진단 중...";
+  if (videos && videos.length >= 2) {
+    const firstDate = new Date(videos[videos.length - 1].snippet.publishedAt).getTime();
+    const lastDate = new Date(videos[0].snippet.publishedAt).getTime();
+    const diffDays = (lastDate - firstDate) / (1000 * 3600 * 24);
+    const avgDays = diffDays / (videos.length - 1);
+    frequencyLabel = avgDays <= 2 ? "주 3~4회 이상 (매우성실)" : avgDays <= 7 ? "주 1~2회 (정기적)" : "비정기적 업로드";
+  }
+
+  const formatNumber = (num: string | number) => Number(num).toLocaleString();
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      <Link to="/ranking" className="inline-flex items-center text-slate-500 hover:text-red-600 transition-colors gap-1 text-sm font-bold">
-        <ChevronLeft size={16} /> 분석 리스트로 돌아가기
-      </Link>
+      <Link to="/ranking" className="inline-flex items-center text-slate-500 gap-1 text-sm font-bold"><ChevronLeft size={16} /> 뒤로가기</Link>
 
-      {/* Header Info */}
-      <div className="bg-white p-6 md:p-8 rounded-[32px] border shadow-sm flex flex-col md:flex-row gap-8 items-start relative overflow-hidden group">
-        <img src={channelData.snippet.thumbnails.high.url} className="w-24 h-24 md:w-32 md:h-32 rounded-[24px] object-cover bg-slate-100 shadow-xl z-10 group-hover:rotate-2 transition-transform" alt="Channel" />
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-8 items-start relative overflow-hidden group">
+        <img src={channelData.snippet.thumbnails.high.url} className="w-32 h-32 rounded-[24px] object-cover shadow-xl z-10" alt="Channel" />
         <div className="flex-1 space-y-3 z-10">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900">{channelData.snippet.title}</h1>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={toggleFavorite}
-                className={`p-2 rounded-full transition-all ${isFavorite ? 'text-yellow-500 bg-yellow-50' : 'text-slate-200 hover:text-yellow-400 bg-slate-50'}`}
-                title="즐겨찾기"
-              >
-                <Star fill={isFavorite ? 'currentColor' : 'none'} size={24} />
-              </button>
-              <a 
-                href={youtubeChannelUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100"
-              >
-                <Youtube size={16} />
-                채널 바로가기
-              </a>
-            </div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{channelData.snippet.title}</h1>
+            <button onClick={() => {
+              const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+              const next = isFavorite ? favs.filter((f: any) => f !== id) : [...favs, id];
+              localStorage.setItem('favorites', JSON.stringify(next));
+              setIsFavorite(!isFavorite);
+            }} className={`p-2 rounded-full ${isFavorite ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' : 'text-slate-200'}`}>
+              <Star fill={isFavorite ? 'currentColor' : 'none'} size={24} />
+            </button>
           </div>
-          <p className="text-slate-500 line-clamp-2 text-sm max-w-2xl leading-relaxed">{channelData.snippet.description}</p>
-          <div className="flex flex-wrap gap-2 mt-4">
-             <div className="flex items-center gap-1.5 bg-slate-900 text-white px-4 py-1.5 rounded-full text-[11px] font-black shadow-lg">
-               <TrendingUp size={12} className="text-red-500" />
-               성장 잠재력: {getViralGrade(avgViews, subscriberCount).label}
+          <div className="flex flex-wrap gap-2">
+             <div className="flex items-center gap-1.5 bg-slate-900 dark:bg-red-600 text-white px-4 py-1.5 rounded-full text-[11px] font-black uppercase">
+               <Clock size={12} /> {frequencyLabel}
              </div>
-             <div className="flex items-center gap-1.5 bg-slate-100 px-4 py-1.5 rounded-full text-[11px] font-bold text-slate-600 border">
-               <Calendar size={12} />
-               생성일: {new Date(channelData.snippet.publishedAt).toLocaleDateString()}
+             <div className="flex items-center gap-1.5 bg-red-50 dark:bg-slate-800 text-red-600 dark:text-red-400 px-4 py-1.5 rounded-full text-[11px] font-black uppercase">
+               <PieChart size={12} /> Shorts {shortsRatio}% 비중
              </div>
           </div>
         </div>
       </div>
 
-      {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard icon={Users} label="현재 구독자" value={formatNumber(subscriberCount)} color="text-blue-600" bg="bg-blue-50" />
-        <MetricCard icon={PlayCircle} label="누적 조회수" value={formatNumber(channelData.statistics.viewCount)} color="text-red-600" bg="bg-red-50" />
-        <MetricCard 
-          icon={Coins} 
-          label="예상 월 수익(추정치)" 
-          value={formatKRW(monthlyMaxUSD, exchangeRate)} 
-          subValue={`환율 기반 $${Math.round(monthlyMaxUSD).toLocaleString()}`}
-          color="text-amber-600" 
-          bg="bg-amber-50" 
-          hasInfo
-        />
-        <MetricCard icon={Zap} label="평균 조회 기여도" value={`${((avgViews / subscriberCount) * 100).toFixed(1)}%`} color="text-purple-600" bg="bg-purple-50" />
+        <MetricCard label="현재 구독자" value={formatNumber(channelData.statistics.subscriberCount)} color="text-blue-600" bg="bg-blue-50 dark:bg-blue-900/10" />
+        <MetricCard label="누적 조회수" value={formatNumber(channelData.statistics.viewCount)} color="text-red-600" bg="bg-red-50 dark:bg-red-900/10" />
+        <MetricCard label="쇼츠 비중" value={`${shortsRatio}%`} color="text-purple-600" bg="bg-purple-50 dark:bg-purple-900/10" />
+        <MetricCard label="업로드 주기" value={frequencyLabel.split(' ')[0]} color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-900/10" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Views Trend Chart */}
-          <div className="bg-white p-6 md:p-8 rounded-[32px] border shadow-sm space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black flex items-center gap-2 tracking-tight">
-                <BarChart size={20} className="text-red-500" /> 최근 콘텐츠 성과 분석
-              </h3>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] text-slate-400 font-black bg-slate-50 px-3 py-1 rounded-full border">LAST 10 VIDEOS</span>
-                <span className="text-[9px] text-slate-300 flex items-center gap-1">
-                  <RefreshCw size={8} /> 실시간 환율 적용 중 (1$ = {exchangeRate.toFixed(1)}원)
-                </span>
-              </div>
-            </div>
-            <div className="h-[300px] w-full">
-              {videosLoading ? (
-                <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-slate-200" /></div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                      formatter={(value: any) => [formatNumber(value), '조회수']}
-                    />
-                    <Area type="monotone" dataKey="views" stroke="#ef4444" strokeWidth={4} fillOpacity={1} fill="url(#colorViews)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+          {/* Analysis Graph */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
+            <h3 className="text-lg font-black flex items-center gap-2"><TrendingUp className="text-red-500" /> 최근 조회수 추이</h3>
+            <div className="h-64 w-full">
+               {videosLoading ? <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-slate-200" /></div> : (
+                 <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={videos?.slice().reverse().map(v => ({ name: '', views: parseInt(v.statistics.viewCount) }))}>
+                      <defs><linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.1}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient></defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.5}/>
+                      <XAxis hide />
+                      <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                      <Area type="monotone" dataKey="views" stroke="#ef4444" strokeWidth={4} fill="url(#colorViews)" />
+                    </AreaChart>
+                 </ResponsiveContainer>
+               )}
             </div>
           </div>
 
-          {/* Video List */}
+          {/* Similar Channels (Feature 6) */}
           <section className="space-y-4">
-            <h3 className="text-lg font-black flex items-center gap-2 tracking-tight">
-              <PlayCircle size={20} className="text-red-500" /> 영상별 잠재력 등급
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {videosLoading ? (
-                <div className="col-span-2 py-10 flex justify-center"><Loader2 className="animate-spin text-slate-300" /></div>
-              ) : (
-                videos?.map(video => {
-                  const viral = getViralGrade(parseInt(video.statistics.viewCount), subscriberCount);
-                  return (
-                    <div key={video.id} className="bg-white p-4 rounded-[24px] border flex flex-col gap-3 hover:shadow-xl hover:-translate-y-1 transition-all group">
-                      <div className="aspect-video rounded-2xl overflow-hidden relative">
-                        <img src={video.snippet.thumbnails.medium.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Video" />
-                        <div className={`absolute bottom-2 left-2 px-3 py-1 rounded-full text-[9px] font-black uppercase shadow-lg border-2 border-white ${viral.color}`}>
-                          {viral.label}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="font-bold text-sm line-clamp-2 group-hover:text-red-600 transition-colors leading-snug">{video.snippet.title}</h4>
-                        <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400 font-bold">
-                          <div className="flex items-center gap-3">
-                            <span className="flex items-center gap-1"><PlayCircle size={10} /> {formatNumber(video.statistics.viewCount)}</span>
-                            <span className="flex items-center gap-1"><Heart size={10} /> {formatNumber(video.statistics.likeCount || 0)}</span>
-                          </div>
-                          <span>{new Date(video.snippet.publishedAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            <h3 className="text-lg font-black flex items-center gap-2"><Zap className="text-yellow-500" /> 유사한 분석 채널 추천</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {similarChannels?.filter(c => c.id !== id).map(channel => (
+                <Link key={channel.id} to={`/channel/${channel.id}`} className="bg-white dark:bg-slate-900 p-4 rounded-[24px] border dark:border-slate-800 text-center space-y-2 hover:border-red-500 transition-all">
+                  <img src={channel.snippet.thumbnails.default.url} className="w-12 h-12 rounded-full mx-auto" />
+                  <p className="text-[11px] font-black truncate text-slate-900 dark:text-slate-200">{channel.snippet.title}</p>
+                </Link>
+              ))}
             </div>
           </section>
         </div>
 
-        {/* Sidebar Widgets */}
         <div className="space-y-6">
-          <div className="bg-slate-900 text-white p-6 rounded-[32px] shadow-2xl space-y-6 border border-white/5">
-            <div className="flex items-center gap-2 font-black italic text-red-500">
-              <TrendingUp size={20} />
-              GROWTH PREDICTION
-            </div>
-            
+          <div className="bg-slate-900 p-8 rounded-[32px] text-white shadow-2xl space-y-6">
+            <div className="flex items-center gap-2 font-black italic text-red-500 uppercase tracking-widest text-xs">Strategy AI Info</div>
             <div className="space-y-4">
                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">현재 성장 동력</p>
-                 <div className="text-xl font-black text-white">
-                   {Math.round((avgViews / subscriberCount) * 100)}% <span className="text-xs text-slate-500 font-medium">/ 100% (활성도)</span>
-                 </div>
+                 <p className="text-[10px] text-slate-500 font-bold mb-1">채널 성격</p>
+                 <p className="text-sm font-bold">{shortsRatio > 70 ? "쇼츠 집중형" : shortsRatio > 30 ? "하이브리드형" : "롱폼 정석형"}</p>
                </div>
-
-               <div className="space-y-3">
-                  <div className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
-                    <span className="text-xs font-bold text-slate-400">3개월 예상 구독자</span>
-                    <span className="text-sm font-black text-red-500">+{formatNumber(Math.round(subscriberCount * 0.12))}명</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
-                    <span className="text-xs font-bold text-slate-400">1년 예상 구독자</span>
-                    <span className="text-sm font-black text-red-500">+{formatNumber(Math.round(subscriberCount * 0.55))}명</span>
-                  </div>
+               <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                 <p className="text-[10px] text-slate-500 font-bold mb-1">성장 활성도</p>
+                 <p className="text-sm font-bold">{frequencyLabel.split(' ')[0]}</p>
                </div>
             </div>
-
-            <div className="p-3 bg-red-500/10 rounded-xl text-[10px] text-red-300 leading-relaxed font-medium flex gap-2">
-              <AlertCircle size={14} className="shrink-0 mt-0.5" />
-              <span>위 데이터는 시뮬레이션 결과로, 채널의 업로드 패턴과 시장 환경에 따라 실제 성장세는 달라질 수 있습니다.</span>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-[32px] border shadow-sm space-y-4">
-            <div className="flex items-center gap-2 font-black text-slate-800 uppercase tracking-tighter text-sm">
-              <Info size={16} className="text-blue-500" /> 수익 분석 면책 조항
-            </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-              표기된 예상 수익은 최근 영상의 평균 조회수를 바탕으로 한 <strong>단순 추정치</strong>이며, YouTube의 실제 정산 금액과는 무관합니다. 광고 효율(CPM), 시청 지속 시간, 시청자 국가, 영상 카테고리에 따라 실제 수입은 크게 차이 날 수 있으므로 <strong>비교 분석용 참고 지표</strong>로만 활용해 주시기 바랍니다.
-            </p>
           </div>
         </div>
       </div>
@@ -315,19 +153,11 @@ const ChannelDetail: React.FC = () => {
   );
 };
 
-const MetricCard = ({ icon: Icon, label, value, subValue, color, bg, hasInfo }: any) => (
-  <div className="bg-white p-6 rounded-[28px] border shadow-sm flex flex-col gap-2 group hover:border-red-500 transition-all relative">
-    <div className={`${bg} ${color} w-fit p-2 rounded-xl transition-transform group-hover:scale-110`}>
-      <Icon size={18} />
-    </div>
-    <div className="flex items-center gap-1">
-      <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">{label}</p>
-      {hasInfo && <AlertCircle size={10} className="text-slate-300" />}
-    </div>
-    <div>
-      <p className="text-xl font-black text-slate-900 tracking-tighter">{value}</p>
-      {subValue && <p className="text-[10px] text-slate-400 font-bold mt-0.5">{subValue}</p>}
-    </div>
+const MetricCard = ({ label, value, color, bg }: any) => (
+  <div className={`p-6 rounded-[28px] border dark:border-slate-800 shadow-sm flex flex-col gap-1 bg-white dark:bg-slate-900`}>
+    <div className={`${bg} ${color} w-fit p-1.5 rounded-lg mb-2`}><BarChart size={16} /></div>
+    <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">{label}</p>
+    <p className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
   </div>
 );
 

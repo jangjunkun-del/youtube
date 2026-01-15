@@ -5,7 +5,6 @@ const API_BASE = '/api';
 
 export const youtubeApi = {
   searchChannels: async (keyword: string, maxResults: number = 10): Promise<YouTubeChannel[]> => {
-    // maxResults를 쿼리 파라미터로 전달 (YouTube API v3 Search 제한은 최대 50)
     const searchRes = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=channel&maxResults=${maxResults}&q=${encodeURIComponent(keyword)}`);
     const searchData = await searchRes.json();
     if (!searchData.items) return [];
@@ -24,7 +23,8 @@ export const youtubeApi = {
     const playlistData = await playlistRes.json();
     const videoIds = playlistData.items?.map((v: any) => v.contentDetails.videoId).join(',') || '';
     if (!videoIds) return [];
-    const videosRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics&id=${videoIds}`);
+    // contentDetails를 추가하여 duration 정보 확보
+    const videosRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
     const videosData = await videosRes.json();
     return videosData.items || [];
   }

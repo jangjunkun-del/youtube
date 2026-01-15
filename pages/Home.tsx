@@ -1,9 +1,18 @@
 
 import React, { useState } from 'react';
-import { Search, TrendingUp, Users, PlayCircle, Star, BarChart3, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, TrendingUp, Users, PlayCircle, Star, BarChart3, ChevronRight, Loader2, Zap, Flame } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
+const CATEGORY_STATS = [
+  { name: '국뽕', value: 85, color: '#ef4444' },
+  { name: '재테크', value: 62, color: '#3b82f6' },
+  { name: 'IT/테크', value: 45, color: '#10b981' },
+  { name: '게임', value: 92, color: '#8b5cf6' },
+  { name: '여행', value: 38, color: '#f59e0b' },
+];
 
 const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,14 +20,10 @@ const Home: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/ranking?q=${encodeURIComponent(searchQuery)}`);
-    }
+    if (searchQuery.trim()) navigate(`/ranking?q=${encodeURIComponent(searchQuery)}`);
   };
 
   const favorites: string[] = JSON.parse(localStorage.getItem('favorites') || '[]');
-
-  // 즐겨찾기 채널들의 실제 정보를 가져옴
   const { data: favoriteChannels, isLoading: isFavLoading } = useQuery({
     queryKey: ['favoriteChannels', favorites.join(',')],
     queryFn: () => youtubeApi.getChannelsByIds(favorites.join(',')),
@@ -28,7 +33,6 @@ const Home: React.FC = () => {
   const formatCount = (num: string) => {
     const n = parseInt(num, 10);
     if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
-    if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
     return n.toLocaleString();
   };
 
@@ -36,18 +40,14 @@ const Home: React.FC = () => {
     <div className="max-w-6xl mx-auto space-y-12 pb-20">
       {/* Hero Section */}
       <section className="text-center py-12 space-y-6">
-        <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase mb-4 animate-bounce">
+        <div className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-full text-xs font-black tracking-widest uppercase mb-4 animate-bounce">
           <TrendingUp size={14} />
           Real-time Youtube Analytics
         </div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-6xl">
           데이터로 증명하는 <br className="hidden sm:block" />
           <span className="text-red-600">유튜브 랭킹</span> 서비스
         </h1>
-        <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
-          단순한 구독자 수를 넘어, 조회수 효율과 성장 잠재력을 수치로 확인하세요. <br />
-          경쟁 채널을 분석하고 나만의 즐겨찾기 리스트를 만들어보세요.
-        </p>
         
         <div className="max-w-2xl mx-auto space-y-4">
           <form onSubmit={handleSearch} className="relative mt-8 group">
@@ -55,124 +55,81 @@ const Home: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="채널 이름 또는 키워드(예: 캠핑, 재테크)를 입력하세요..."
-              className="w-full pl-14 pr-4 py-5 rounded-[24px] border-none shadow-2xl ring-2 ring-slate-100 focus:ring-4 focus:ring-red-500/20 transition-all outline-none text-lg font-medium"
+              placeholder="채널 이름 또는 키워드를 입력하세요..."
+              className="w-full pl-14 pr-4 py-5 rounded-[24px] bg-white dark:bg-slate-900 border-none shadow-2xl dark:shadow-red-900/10 ring-2 ring-slate-100 dark:ring-slate-800 focus:ring-4 focus:ring-red-500/20 transition-all outline-none text-lg font-medium dark:text-white"
             />
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-500 transition-colors" size={24} />
-            <button 
-              type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white px-8 py-3 rounded-2xl font-black hover:bg-black transition-all shadow-lg active:scale-95"
-            >
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-900 dark:bg-red-600 text-white px-8 py-3 rounded-2xl font-black hover:bg-black dark:hover:bg-red-700 transition-all shadow-lg active:scale-95">
               분석하기
             </button>
           </form>
-
-          {/* 주요 기능 바로가기 버튼 */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
-            <Link 
-              to="/ranking" 
-              className="w-full sm:w-auto flex items-center justify-center gap-3 bg-red-600 text-white px-10 py-5 rounded-[20px] font-black text-lg shadow-xl shadow-red-200 hover:bg-red-700 hover:-translate-y-1 transition-all group"
-            >
-              <BarChart3 size={24} />
-              분야별 채널 랭킹 보기
-              <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-            
-            <Link 
-              to="/compare" 
-              className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white text-slate-700 px-10 py-5 rounded-[20px] font-black text-lg border-2 border-slate-100 shadow-sm hover:border-slate-200 hover:bg-slate-50 transition-all"
-            >
-              <PlayCircle size={24} className="text-red-500" />
-              채널 비교
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* Feature Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4 sm:px-0">
-        <SummaryCard 
-          icon={Users} 
-          title="실시간 순위" 
-          desc="키워드별 구독자 및 조회수 순위를 실시간으로 집계합니다." 
-          color="text-red-600" 
-          bg="bg-red-50" 
-        />
-        <SummaryCard 
-          icon={TrendingUp} 
-          title="성장 잠재력" 
-          desc="구독자 대비 조회수 효율을 계산하여 '떡상' 가능성을 측정합니다." 
-          color="text-blue-600" 
-          bg="bg-blue-50" 
-        />
-        <SummaryCard 
-          icon={PlayCircle} 
-          title="경쟁 분석" 
-          desc="최대 5개 채널의 업로드 빈도와 성과를 한눈에 비교합니다." 
-          color="text-green-600" 
-          bg="bg-green-50" 
-        />
+      {/* Feature Section: 2. 떡상 예보 (Rising Stars) & 4. 카테고리 포화도 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Category Saturation Heatmap (Feature 4) */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border dark:border-slate-800 shadow-sm space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-xl flex items-center gap-2 dark:text-white"><BarChart3 className="text-blue-500" /> 분야별 포화도 (HOT)</h3>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">Weekly Trend</span>
+          </div>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={CATEGORY_STATS}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 'bold' }} />
+                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                <Bar dataKey="value" radius={[10, 10, 10, 10]} barSize={40}>
+                  {CATEGORY_STATS.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs text-slate-400 text-center font-medium italic">조회수 대비 채널 경쟁도 지표 (높을수록 경쟁 치열)</p>
+        </div>
+
+        {/* Rising Stars Preview (Feature 2) */}
+        <div className="bg-slate-900 dark:bg-slate-900 p-8 rounded-[32px] text-white shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform">
+            <Flame size={120} />
+          </div>
+          <div className="relative z-10 space-y-6">
+            <div className="flex items-center gap-2 text-red-500 font-black italic tracking-tighter uppercase">
+              <Zap size={20} fill="currentColor" /> 실시간 떡상 예보
+            </div>
+            <div className="space-y-4">
+              <RisingItem rank={1} name="여행하는 부부" score="98.5" cate="여행" />
+              <RisingItem rank={2} name="머니인사이드" score="94.2" cate="경제" />
+              <RisingItem rank={3} name="오목교 테라스" score="91.8" cate="IT" />
+            </div>
+            <Link to="/ranking?q=국뽕" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white transition-colors">
+              전체 떡상 채널 목록 보기 <ChevronRight size={16} />
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Favorites Section */}
-      <section className="space-y-6 px-4 sm:px-0">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <h2 className="text-2xl font-black flex items-center gap-2 tracking-tight">
-            <Star className="text-yellow-400 fill-yellow-400" /> 관심 분석 채널
-          </h2>
-          {favorites.length > 0 && (
-            <Link to="/settings" className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest">
-              Manage Favorites
-            </Link>
-          )}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-b dark:border-slate-800 pb-4">
+          <h2 className="text-2xl font-black flex items-center gap-2 dark:text-white"><Star className="text-yellow-400 fill-yellow-400" /> 관심 분석 채널</h2>
         </div>
-        
-        {favorites.length === 0 ? (
-          <div className="bg-white border-4 border-dashed border-slate-100 rounded-[40px] p-20 text-center space-y-4">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
-              <Star className="text-slate-200" size={32} />
-            </div>
-            <div className="space-y-1">
-              <p className="text-slate-500 font-black text-lg">즐겨찾는 채널이 없습니다.</p>
-              <p className="text-slate-400 text-sm font-medium">검색 결과나 랭킹 페이지에서 별 아이콘을 눌러 추가해보세요!</p>
-            </div>
-            <Link to="/ranking" className="inline-block mt-4 text-red-600 font-bold hover:underline">인기 채널 둘러보기 &rarr;</Link>
-          </div>
-        ) : isFavLoading ? (
-          <div className="flex justify-center p-20">
-            <Loader2 className="animate-spin text-red-500" size={32} />
-          </div>
-        ) : (
+        {favorites.length > 0 && favoriteChannels && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {favoriteChannels?.map((channel) => (
-              <Link 
-                key={channel.id} 
-                to={`/channel/${channel.id}`}
-                className="bg-white p-6 rounded-[32px] border-2 border-slate-50 shadow-sm hover:shadow-xl hover:border-red-100 transition-all group flex flex-col items-center text-center gap-3"
-              >
-                <div className="relative">
-                  <img 
-                    src={channel.snippet.thumbnails.default.url} 
-                    alt={channel.snippet.title}
-                    className="w-20 h-20 rounded-[24px] shadow-md group-hover:scale-105 transition-transform bg-slate-100"
-                  />
-                  <div className="absolute -top-2 -right-2 bg-yellow-400 text-white p-1 rounded-full shadow-sm">
-                    <Star size={12} fill="currentColor" />
-                  </div>
-                </div>
-                <div className="w-full">
-                  <p className="text-slate-900 font-black truncate w-full px-2 tracking-tight">
-                    {channel.snippet.title}
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">
-                    구독자 {formatCount(channel.statistics.subscriberCount)}명
-                  </p>
-                  <div className="mt-3 inline-flex items-center gap-1 text-[9px] font-black text-red-500 uppercase bg-red-50 px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    Detailed Report <ChevronRight size={10} />
-                  </div>
-                </div>
+            {favoriteChannels.map((channel) => (
+              <Link key={channel.id} to={`/channel/${channel.id}`} className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-red-100 dark:hover:border-red-900 transition-all group flex flex-col items-center text-center gap-3">
+                <img src={channel.snippet.thumbnails.default.url} className="w-16 h-16 rounded-[20px] shadow-md group-hover:scale-105 transition-transform" />
+                <p className="text-slate-900 dark:text-slate-200 font-black truncate w-full px-2 tracking-tight">{channel.snippet.title}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">구독자 {formatCount(channel.statistics.subscriberCount)}명</p>
               </Link>
             ))}
+          </div>
+        )}
+        {favorites.length === 0 && (
+          <div className="bg-white dark:bg-slate-900 p-12 rounded-[32px] border-2 border-dashed border-slate-100 dark:border-slate-800 text-center text-slate-400">
+            <p className="font-medium">즐겨찾는 채널이 없습니다. 검색을 통해 채널을 추가해보세요!</p>
           </div>
         )}
       </section>
@@ -180,14 +137,20 @@ const Home: React.FC = () => {
   );
 };
 
-const SummaryCard = ({ icon: Icon, title, desc, color, bg }: any) => (
-  <div className="bg-white p-8 rounded-[32px] border-2 border-slate-50 shadow-sm flex flex-col gap-4 group hover:border-red-100 transition-all">
-    <div className={`${bg} ${color} w-fit p-4 rounded-2xl group-hover:scale-110 transition-transform`}>
-      <Icon size={24} />
+const RisingItem = ({ rank, name, score, cate }: any) => (
+  <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+    <div className="flex items-center gap-4">
+      <span className="text-lg font-black italic text-red-500">{rank}</span>
+      <div>
+        <p className="font-bold text-sm">{name}</p>
+        <p className="text-[10px] text-slate-500 font-black uppercase">{cate}</p>
+      </div>
     </div>
-    <div className="space-y-1">
-      <h3 className="font-black text-xl text-slate-900 tracking-tight">{title}</h3>
-      <p className="text-slate-500 text-sm leading-relaxed font-medium">{desc}</p>
+    <div className="text-right">
+      <p className="text-xs font-black text-red-400">{score}점</p>
+      <div className="w-12 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+        <div className="h-full bg-red-500" style={{ width: `${score}%` }}></div>
+      </div>
     </div>
   </div>
 );

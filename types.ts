@@ -39,6 +39,9 @@ export interface YouTubeVideo {
     channelId: string;
     channelTitle: string;
   };
+  contentDetails: {
+    duration: string;
+  };
   statistics: {
     viewCount: string;
     likeCount: string;

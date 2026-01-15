@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
-import { Search, Loader2, TrendingUp, Zap, MousePointer2, ListOrdered, ExternalLink } from 'lucide-react';
+import { Search, Loader2, TrendingUp, Zap, MousePointer2, ListOrdered, ExternalLink, Activity } from 'lucide-react';
 import { YouTubeChannel } from '../types.ts';
 
 const CATEGORIES = [
@@ -39,24 +39,17 @@ const calculateEfficiency = (views: string, subs: string) => {
 const Ranking: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // URL에서 q 파라미터를 가져오되, 실제 검색(API)에는 'IT 테크'를 기본값으로 사용
   const qFromUrl = searchParams.get('q');
   const queryParam = qFromUrl || 'IT 테크'; 
   const sizeParam = parseInt(searchParams.get('size') || '10');
   
-  // 입력창 상태: URL에 q가 명시적으로 있을 때만 그 값을 보여주고, 없으면 빈 문자열(Placeholder 노출)
   const [keyword, setKeyword] = useState(qFromUrl || '');
   const [pageSize, setPageSize] = useState(sizeParam);
   const [sortBy, setSortBy] = useState<'subscriber' | 'view' | 'efficiency'>('subscriber');
 
-  // URL의 q 파라미터가 변경될 때만 입력창 동기화 (예: 카테고리 클릭 시)
   useEffect(() => {
     setKeyword(qFromUrl || '');
   }, [qFromUrl]);
-
-  useEffect(() => {
-    setPageSize(sizeParam);
-  }, [sizeParam]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['searchChannels', queryParam, pageSize],
@@ -98,7 +91,7 @@ const Ranking: React.FC = () => {
       <header className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">채널 랭킹 분석</h1>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">채널 랭킹 분석</h1>
             <p className="text-slate-500 text-sm mt-1 font-medium italic">키워드별 실시간 성장 지표를 확인하세요.</p>
           </div>
           
@@ -107,18 +100,37 @@ const Ranking: React.FC = () => {
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              className="w-full pl-12 pr-24 py-3 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all shadow-sm"
+              className="w-full pl-12 pr-24 py-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all shadow-sm dark:text-white"
               placeholder="직접 키워드 입력..."
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-500 transition-colors" size={20} />
             <button 
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-900 text-white px-4 py-1.5 rounded-xl text-xs font-bold hover:bg-black transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-900 dark:bg-red-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold hover:bg-black dark:hover:bg-red-700 transition-colors"
             >
               검색
             </button>
           </form>
         </div>
+
+        {/* Keyword Trend Summary (Feature 9) */}
+        {!isLoading && !isError && data && (
+          <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 p-4 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm">
+                <Activity size={20} className="text-red-500" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-red-600 dark:text-red-400 uppercase tracking-widest">Trending Insight</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">"{queryParam}" 관련 상위 채널 평균 효율: <span className="text-red-600 font-black">{Math.round(data.reduce((acc, c) => acc + calculateEfficiency(c.statistics.viewCount, c.statistics.subscriberCount), 0) / data.length).toLocaleString()}점</span></p>
+              </div>
+            </div>
+            <div className="hidden sm:block text-right">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Analysis Status</p>
+              <p className="text-xs font-black text-emerald-500">REAL-TIME DATA ACTIVE</p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
@@ -133,8 +145,8 @@ const Ranking: React.FC = () => {
                 className={`
                   px-4 py-2 rounded-xl text-sm font-bold transition-all border-2
                   ${queryParam === cat.value 
-                    ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-200 -translate-y-0.5' 
-                    : 'bg-white border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50/30'
+                    ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-200 dark:shadow-none -translate-y-0.5' 
+                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-red-200 hover:bg-red-50/30'
                   }
                 `}
               >
@@ -145,8 +157,8 @@ const Ranking: React.FC = () => {
         </div>
       </header>
 
-      <div className="bg-white border-2 border-slate-100 rounded-[32px] shadow-sm overflow-hidden">
-        <div className="p-5 border-b flex flex-wrap items-center justify-between bg-slate-50/50 gap-4">
+      <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[32px] shadow-sm overflow-hidden">
+        <div className="p-5 border-b dark:border-slate-800 flex flex-wrap items-center justify-between bg-slate-50/50 dark:bg-slate-800/20 gap-4">
           <div className="flex items-center gap-2">
             {(['subscriber', 'view', 'efficiency'] as const).map((type) => (
               <button
@@ -154,8 +166,8 @@ const Ranking: React.FC = () => {
                 onClick={() => setSortBy(type)}
                 className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${
                   sortBy === type 
-                  ? 'bg-slate-900 border-slate-900 text-white shadow-md' 
-                  : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100'
+                  ? 'bg-slate-900 dark:bg-red-600 border-slate-900 dark:border-red-600 text-white shadow-md' 
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
                 {type === 'subscriber' ? '구독자순' : type === 'view' ? '조회수순' : '잠재력(효율)순'}
@@ -164,12 +176,12 @@ const Ranking: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
               <ListOrdered size={14} className="text-slate-400" />
               <select 
                 value={pageSize}
                 onChange={handleSizeChange}
-                className="text-xs font-black text-slate-600 outline-none bg-transparent cursor-pointer"
+                className="text-xs font-black text-slate-600 dark:text-slate-400 outline-none bg-transparent cursor-pointer"
               >
                 {PAGE_SIZES.map(size => (
                   <option key={size} value={size}>{size}개씩 보기</option>
@@ -177,7 +189,7 @@ const Ranking: React.FC = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-100">
+            <div className="flex items-center gap-2 text-xs text-slate-400 font-bold bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-800">
               <Zap size={14} className="text-yellow-500" fill="currentColor" />
               검색: {queryParam}
             </div>
@@ -188,7 +200,6 @@ const Ranking: React.FC = () => {
           <div className="p-32 flex flex-col items-center justify-center text-slate-400 gap-6">
             <div className="relative">
               <Loader2 className="animate-spin text-red-500" size={56} />
-              <YoutubeIcon className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-100" />
             </div>
             <p className="animate-pulse font-black text-slate-500 tracking-tighter uppercase">Analyzing Youtube Ecosystem...</p>
           </div>
@@ -201,7 +212,7 @@ const Ranking: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50/80 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b">
+                <tr className="bg-slate-50/80 dark:bg-slate-800/40 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b dark:border-slate-800">
                   <th className="px-8 py-5">RANK</th>
                   <th className="px-8 py-5">CHANNEL</th>
                   <th className="px-8 py-5 text-right">SUBS</th>
@@ -210,16 +221,16 @@ const Ranking: React.FC = () => {
                   <th className="px-8 py-5"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {sortedData.map((channel, idx) => {
                   const efficiency = calculateEfficiency(channel.statistics.viewCount, channel.statistics.subscriberCount);
                   const channelUrl = `https://www.youtube.com/channel/${channel.id}`;
                   return (
-                    <tr key={channel.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <tr key={channel.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
                       <td className="px-8 py-5">
                         <span className={`
                           inline-flex items-center justify-center w-8 h-8 rounded-xl text-xs font-black
-                          ${idx === 0 ? 'bg-yellow-400 text-white shadow-md' : idx === 1 ? 'bg-slate-300 text-white shadow-sm' : idx === 2 ? 'bg-orange-300 text-white shadow-sm' : 'text-slate-400 bg-slate-100'}
+                          ${idx === 0 ? 'bg-yellow-400 text-white shadow-md' : idx === 1 ? 'bg-slate-300 text-white shadow-sm' : idx === 2 ? 'bg-orange-300 text-white shadow-sm' : 'text-slate-400 bg-slate-100 dark:bg-slate-800'}
                         `}>
                           {idx + 1}
                         </span>
@@ -227,13 +238,13 @@ const Ranking: React.FC = () => {
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
                           <Link to={`/channel/${channel.id}`} title="상세 분석 보기">
-                            <img src={channel.snippet.thumbnails.default.url} className="w-12 h-12 rounded-2xl bg-slate-100 shadow-sm hover:scale-110 transition-transform" />
+                            <img src={channel.snippet.thumbnails.default.url} className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 shadow-sm hover:scale-110 transition-transform" />
                           </Link>
                           <div>
                             <div className="flex items-center gap-1.5 group/name">
                               <Link 
                                 to={`/channel/${channel.id}`}
-                                className="font-black text-slate-900 group-hover/name:text-red-600 transition-colors truncate max-w-[200px] tracking-tight"
+                                className="font-black text-slate-900 dark:text-slate-200 group-hover/name:text-red-600 transition-colors truncate max-w-[200px] tracking-tight"
                               >
                                 {channel.snippet.title}
                               </Link>
@@ -251,7 +262,7 @@ const Ranking: React.FC = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-right font-black text-slate-700">
+                      <td className="px-8 py-5 text-right font-black text-slate-700 dark:text-slate-300">
                         {formatCount(channel.statistics.subscriberCount)}
                       </td>
                       <td className="px-8 py-5 text-right">
@@ -259,7 +270,7 @@ const Ranking: React.FC = () => {
                           <span className={`text-sm font-black ${efficiency > 500 ? 'text-red-600' : efficiency > 200 ? 'text-orange-600' : 'text-blue-600'}`}>
                             {Math.round(efficiency).toLocaleString()}점
                           </span>
-                          <div className="w-16 h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                          <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-1.5 overflow-hidden">
                             <div 
                               className={`h-full transition-all duration-1000 ${efficiency > 500 ? 'bg-red-500' : 'bg-blue-500'}`} 
                               style={{ width: `${Math.min(100, (efficiency / 1000) * 100)}%` }}
@@ -274,7 +285,7 @@ const Ranking: React.FC = () => {
                         <Link 
                           to={`/channel/${channel.id}`}
                           title="상세 지표 분석"
-                          className="bg-slate-50 group-hover:bg-red-600 group-hover:text-white p-2.5 rounded-xl text-slate-400 transition-all inline-block shadow-sm group-hover:shadow-red-200"
+                          className="bg-slate-50 dark:bg-slate-800 group-hover:bg-red-600 group-hover:text-white p-2.5 rounded-xl text-slate-400 transition-all inline-block shadow-sm group-hover:shadow-red-200 dark:group-hover:shadow-none"
                         >
                           <TrendingUp size={18} />
                         </Link>
@@ -290,11 +301,5 @@ const Ranking: React.FC = () => {
     </div>
   );
 };
-
-const YoutubeIcon = ({ className }: { className?: string }) => (
-  <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-  </svg>
-);
 
 export default Ranking;

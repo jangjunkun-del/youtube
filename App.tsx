@@ -8,7 +8,9 @@ import {
   Copy, 
   Settings as SettingsIcon,
   Menu,
-  X
+  X,
+  Moon,
+  Sun
 } from 'lucide-react';
 import Home from './pages/Home.tsx';
 import Ranking from './pages/Ranking.tsx';
@@ -21,8 +23,8 @@ const SidebarItem = ({ to, icon: Icon, label, active }: { to: string, icon: any,
     to={to}
     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
       active 
-        ? 'bg-red-50 text-red-600 font-semibold shadow-sm' 
-        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-semibold shadow-sm' 
+        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
     }`}
   >
     <Icon size={20} />
@@ -33,42 +35,59 @@ const SidebarItem = ({ to, icon: Icon, label, active }: { to: string, icon: any,
 const App: React.FC = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
-  // Dynamic Title for SEO
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
   useEffect(() => {
     setIsSidebarOpen(false);
-    
-    const baseTitle = 'YouRank - 유튜브 채널 분석';
+    const baseTitle = 'YouRank - 유튜브 분석';
     let subTitle = '';
-
-    if (location.pathname === '/') subTitle = '데이터 대시보드';
-    else if (location.pathname.includes('/ranking')) subTitle = '채널 랭킹 분석';
-    else if (location.pathname.includes('/channel/')) subTitle = '채널 상세 성과';
-    else if (location.pathname.includes('/compare')) subTitle = '채널 지표 비교';
+    if (location.pathname === '/') subTitle = '대시보드';
+    else if (location.pathname.includes('/ranking')) subTitle = '채널 랭킹';
+    else if (location.pathname.includes('/channel/')) subTitle = '상세 분석';
+    else if (location.pathname.includes('/compare')) subTitle = '채널 비교';
     else if (location.pathname.includes('/settings')) subTitle = '설정';
-
     document.title = subTitle ? `${subTitle} | ${baseTitle}` : baseTitle;
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
-      <header className="md:hidden flex items-center justify-between p-4 bg-white border-b sticky top-0 z-50">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+      <header className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-red-600 text-xl">
           <Youtube />
           <span>YouRank</span>
         </div>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-600">
-          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-600 dark:text-slate-400">
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-600 dark:text-slate-400">
+            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </header>
 
       <aside className={`
-        fixed inset-0 z-40 md:relative md:flex flex-col w-64 bg-white border-r transition-transform duration-300 transform
+        fixed inset-0 z-40 md:relative md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r dark:border-slate-800 transition-transform duration-300 transform
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="hidden md:flex items-center gap-2 p-6 font-bold text-red-600 text-2xl border-b mb-4">
-          <Youtube size={32} />
-          <span>YouRank</span>
+        <div className="hidden md:flex items-center justify-between p-6 border-b dark:border-slate-800 mb-4">
+          <div className="flex items-center gap-2 font-bold text-red-600 text-2xl">
+            <Youtube size={32} />
+            <span>YouRank</span>
+          </div>
+          <button onClick={() => setDarkMode(!darkMode)} className="text-slate-400 hover:text-red-500 transition-colors">
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-2 mt-4 md:mt-0">
@@ -78,19 +97,16 @@ const App: React.FC = () => {
           <SidebarItem to="/settings" icon={SettingsIcon} label="설정" active={location.pathname === '/settings'} />
         </nav>
 
-        <div className="p-4 border-t text-xs text-slate-400 text-center">
+        <div className="p-4 border-t dark:border-slate-800 text-xs text-slate-400 text-center">
           &copy; 2024 YouRank Analytics
         </div>
       </aside>
 
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden" 
-          onClick={() => setIsSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 dark:text-slate-200">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/ranking" element={<Ranking />} />
