@@ -79,16 +79,22 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
   }
 };
 
+// 메타데이터 가중치를 고려한 카테고리 리스트
 const CATEGORIES = [
   { label: '🌐 전체', value: '채널' },
-  { label: '💻 IT/테크', value: 'IT 테크' },
-  { label: '🎮 게임', value: '게임' },
-  { label: '🍽️ 먹방/요리', value: '먹방 요리' },
-  { label: '📈 경제/재테크', value: '경제 재테크' },
-  { label: '⚖️ 정치', value: '정치' },
-  { label: '📺 뉴스/시사', value: '뉴스' },
-  { label: '🎶 음악', value: '음악' },
-  { label: '✈️ 여행', value: '여행' },
+  { label: '💻 IT/테크', value: 'IT 테크 전자 기기' },
+  { label: '🎮 게임', value: '게임 실황 게이머' },
+  { label: '🍽️ 먹방/요리', value: '먹방 요리 쿡방' },
+  { label: '📈 경제/재테크', value: '주식 경제 재테크 부동산' },
+  { label: '⚖️ 정치', value: '정치 시사' },
+  { label: '📺 뉴스/시사', value: '뉴스 보도 언론' },
+  { label: '🎶 음악', value: '음악 뮤직 뮤지션' },
+  { label: '🎤 K-POP', value: 'K-POP 아이돌' },
+  { label: '✈️ 여행', value: '여행 브이로그' },
+  { label: '👗 뷰티/패션', value: '뷰티 메이크업 패션 스타일' },
+  { label: '⚽ 스포츠', value: '스포츠 야구 축구 운동' },
+  { label: '👶 키즈', value: '키즈 어린이 토이' },
+  { label: '🐾 반려동물', value: '강아지 고양이 반려동물' },
 ];
 
 const formatCount = (num: string | number) => {
@@ -187,16 +193,16 @@ const Ranking: React.FC = () => {
         </div>
 
         {typeParam === 'overall' && (
-          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-[24px] border dark:border-slate-800 flex flex-wrap gap-1.5 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-[24px] border dark:border-slate-800 flex items-center gap-1.5 shadow-sm overflow-x-auto custom-scrollbar whitespace-nowrap">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.value}
                 onClick={() => handleCategoryClick(cat.value)}
                 className={`
-                  px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2
+                  px-5 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0
                   ${currentQuery === cat.value 
                     ? 'bg-slate-900 dark:bg-red-600 text-white shadow-lg' 
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-2 border-transparent'
                   }
                 `}
               >
