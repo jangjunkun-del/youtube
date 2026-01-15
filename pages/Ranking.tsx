@@ -8,7 +8,6 @@ import {
   ListOrdered, ExternalLink, Activity, DollarSign, 
   Radio, Trophy, UserPlus, PlayCircle, BarChart3, TrendingDown, Minus
 } from 'lucide-react';
-import { YouTubeChannel } from '../types.ts';
 
 type RankingType = 'overall' | 'superchat' | 'live' | 'popularity' | 'rising' | 'videos';
 
@@ -20,6 +19,8 @@ interface Config {
   headerLabel: string;
   defaultSort: 'subscriber' | 'view' | 'efficiency';
   searchQuery: string;
+  apiType: 'channel' | 'video';
+  apiOrder: 'viewCount' | 'relevance' | 'date';
 }
 
 const RANKING_CONFIGS: Record<RankingType, Config> = {
@@ -30,7 +31,9 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     color: 'text-slate-500',
     headerLabel: 'SUBSCRIBERS',
     defaultSort: 'subscriber',
-    searchQuery: '채널'
+    searchQuery: '',
+    apiType: 'channel',
+    apiOrder: 'viewCount'
   },
   superchat: {
     title: '슈퍼챗 수익 랭킹',
@@ -39,7 +42,9 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     color: 'text-emerald-500',
     headerLabel: 'EST. EARNINGS',
     defaultSort: 'efficiency',
-    searchQuery: '슈퍼챗'
+    searchQuery: 'LIVE',
+    apiType: 'channel',
+    apiOrder: 'relevance'
   },
   live: {
     title: '실시간 라이브 시청자',
@@ -48,7 +53,9 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     color: 'text-red-500',
     headerLabel: 'LIVE VIEWERS',
     defaultSort: 'view',
-    searchQuery: '라이브'
+    searchQuery: '실시간 방송',
+    apiType: 'channel',
+    apiOrder: 'viewCount'
   },
   popularity: {
     title: '인기 채널 순위',
@@ -57,16 +64,20 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     color: 'text-yellow-500',
     headerLabel: 'POPULARITY SCORE',
     defaultSort: 'view',
-    searchQuery: '인기'
+    searchQuery: 'Official',
+    apiType: 'channel',
+    apiOrder: 'viewCount'
   },
   rising: {
     title: '구독자 급상승',
     description: '최근 구독자 증가율이 가장 높은 성장 잠재력 채널입니다.',
     icon: UserPlus,
     color: 'text-blue-500',
-    headerLabel: 'GROWTH RATE',
+    headerLabel: 'GROWTH INDEX',
     defaultSort: 'efficiency',
-    searchQuery: '급상승'
+    searchQuery: '',
+    apiType: 'channel',
+    apiOrder: 'relevance'
   },
   videos: {
     title: '최다 조회 영상',
@@ -75,12 +86,14 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     color: 'text-purple-500',
     headerLabel: 'VIDEO VIEWS',
     defaultSort: 'view',
-    searchQuery: '최다조회'
+    searchQuery: '',
+    apiType: 'video',
+    apiOrder: 'viewCount'
   }
 };
 
 const CATEGORIES = [
-  { label: '🌐 전체', value: '채널' },
+  { label: '🌐 전체', value: '' },
   { label: '💻 IT/테크', value: 'IT 테크 전자 기기' },
   { label: '🎮 게임', value: '게임 실황 게이머' },
   { label: '🍽️ 먹방/요리', value: '먹방 요리 쿡방' },
@@ -105,11 +118,21 @@ const formatCount = (num: string | number) => {
   return n.toLocaleString();
 };
 
-const calculateEfficiency = (views: string, subs: string) => {
-  const v = parseInt(views);
-  const s = parseInt(subs);
-  if (!s || s === 0) return 0;
-  return (v / s);
+const parseISO8601Duration = (duration: string) => {
+  const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+  const hours = (parseInt(match?.[1] || '0') || 0);
+  const minutes = (parseInt(match?.[2] || '0') || 0);
+  const seconds = (parseInt(match?.[3] || '0') || 0);
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
+const formatDuration = (duration: string) => {
+  const seconds = parseISO8601Duration(duration);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
 const Ranking: React.FC = () => {
@@ -119,7 +142,7 @@ const Ranking: React.FC = () => {
   
   const config = RANKING_CONFIGS[typeParam] || RANKING_CONFIGS.overall;
   const currentQuery = qFromUrl || config.searchQuery;
-  const sizeParam = parseInt(searchParams.get('size') || '10');
+  const sizeParam = parseInt(searchParams.get('size') || '20');
   
   const [keyword, setKeyword] = useState('');
   const [pageSize, setPageSize] = useState(sizeParam);
@@ -130,22 +153,9 @@ const Ranking: React.FC = () => {
   }, [typeParam]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['rankingData', currentQuery, pageSize, typeParam],
-    queryFn: () => youtubeApi.searchChannels(currentQuery, pageSize),
+    queryKey: ['rankingData', currentQuery, pageSize, typeParam, config.apiType],
+    queryFn: () => youtubeApi.search(currentQuery, config.apiType, config.apiOrder, pageSize),
   });
-
-  const sortedData = useMemo(() => {
-    if (!data) return [];
-    return [...data].sort((a, b) => {
-      if (sortBy === 'subscriber') return parseInt(b.statistics.subscriberCount) - parseInt(a.statistics.subscriberCount);
-      if (sortBy === 'view') return parseInt(b.statistics.viewCount) - parseInt(a.statistics.viewCount);
-      if (sortBy === 'efficiency') {
-        return calculateEfficiency(b.statistics.viewCount, b.statistics.subscriberCount) - 
-               calculateEfficiency(a.statistics.viewCount, a.statistics.subscriberCount);
-      }
-      return 0;
-    });
-  }, [data, sortBy]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,11 +201,11 @@ const Ranking: React.FC = () => {
           </form>
         </div>
 
-        {typeParam === 'overall' && (
+        {config.apiType === 'channel' && (
           <div className="bg-white dark:bg-slate-900 p-2.5 rounded-[24px] border dark:border-slate-800 flex items-center gap-1.5 shadow-sm overflow-x-auto custom-scrollbar whitespace-nowrap">
             {CATEGORIES.map((cat) => (
               <button
-                key={cat.value}
+                key={cat.label}
                 onClick={() => handleCategoryClick(cat.value)}
                 className={`
                   px-5 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0
@@ -241,7 +251,7 @@ const Ranking: React.FC = () => {
             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border dark:border-slate-800">
               <ListOrdered size={16} className="text-slate-400" />
               <select value={pageSize} onChange={(e) => setPageSize(parseInt(e.target.value))} className="text-xs font-black outline-none bg-transparent">
-                {[10, 20, 50].map(size => <option key={size} value={size}>{size}개 보기</option>)}
+                {[20, 50, 100].map(size => <option key={size} value={size}>{size}개 보기</option>)}
               </select>
             </div>
             <div className="hidden md:flex items-center gap-2 text-[11px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10 px-4 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/20">
@@ -273,24 +283,19 @@ const Ranking: React.FC = () => {
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-400 text-[11px] font-black uppercase tracking-widest border-b dark:border-slate-800">
                   <th className="px-10 py-6">RANK</th>
-                  <th className="px-10 py-6">CHANNEL</th>
+                  <th className="px-10 py-6">{config.apiType === 'video' ? 'VIDEO INFO' : 'CHANNEL'}</th>
                   <th className="px-10 py-6 text-right">{config.headerLabel}</th>
-                  <th className="px-10 py-6 text-right">GROWTH INDEX</th>
+                  <th className="px-10 py-6 text-right">{config.apiType === 'video' ? 'UPLOADED' : 'GROWTH INDEX'}</th>
                   <th className="px-10 py-6 text-right">VIEWS</th>
                   <th className="px-10 py-6"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {sortedData.map((channel, idx) => {
-                  const efficiency = calculateEfficiency(channel.statistics.viewCount, channel.statistics.subscriberCount);
+                {data.map((item: any, idx: number) => {
+                  const isVideo = config.apiType === 'video';
                   
-                  // 타입별 전용 데이터 시뮬레이션
-                  const earningValue = (Math.random() * 3000000 + 500000);
-                  const liveValue = (Math.random() * 100000 + 5000);
-                  const growthPoints = Math.round(efficiency * (typeParam === 'rising' ? 1.8 : 1.2));
-
                   return (
-                    <tr key={channel.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-all group">
+                    <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-all group">
                       <td className="px-10 py-6">
                         <span className={`
                           inline-flex items-center justify-center w-9 h-9 rounded-2xl text-xs font-black
@@ -303,58 +308,72 @@ const Ranking: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-10 py-6">
-                        <div className="flex items-center gap-5">
-                          <Link to={`/channel/${channel.id}`} className="relative shrink-0">
-                            <img src={channel.snippet.thumbnails.default.url} className="w-14 h-14 rounded-2xl shadow-md border dark:border-slate-700 group-hover:scale-110 transition-transform" />
-                            {typeParam === 'live' && (
-                              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></span>
-                            )}
-                          </Link>
-                          <div>
-                            <Link to={`/channel/${channel.id}`} className="font-black text-slate-900 dark:text-slate-200 group-hover:text-red-600 transition-colors truncate max-w-[200px] block text-base">
-                              {channel.snippet.title}
-                            </Link>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[9px] font-black px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded uppercase">Official Partner</span>
-                              {idx < 3 && <TrendingUp size={10} className="text-red-500" />}
+                        {isVideo ? (
+                          <div className="flex items-center gap-5 max-w-md">
+                            <a href={`https://www.youtube.com/watch?v=${item.id}`} target="_blank" rel="noopener noreferrer" className="relative shrink-0 group/thumb">
+                              <img src={item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default.url} className="w-28 h-16 rounded-xl object-cover shadow-sm group-hover/thumb:scale-105 transition-transform" />
+                              <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] px-1 rounded">{formatDuration(item.contentDetails.duration)}</span>
+                            </a>
+                            <div className="min-w-0">
+                              <a href={`https://www.youtube.com/watch?v=${item.id}`} target="_blank" rel="noopener noreferrer" className="font-black text-slate-900 dark:text-slate-200 group-hover:text-red-600 transition-colors line-clamp-1 block text-sm">
+                                {item.snippet.title}
+                              </a>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-slate-400 font-bold">{item.snippet.channelTitle}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="flex items-center gap-5">
+                            <Link to={`/channel/${item.id}`} className="relative shrink-0">
+                              <img src={item.snippet.thumbnails.default.url} className="w-14 h-14 rounded-2xl shadow-md border dark:border-slate-700 group-hover:scale-110 transition-transform" />
+                            </Link>
+                            <div>
+                              <Link to={`/channel/${item.id}`} className="font-black text-slate-900 dark:text-slate-200 group-hover:text-red-600 transition-colors truncate max-w-[200px] block text-base">
+                                {item.snippet.title}
+                              </Link>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-black px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded uppercase">Official Partner</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td className="px-10 py-6 text-right font-black text-base">
-                        {typeParam === 'superchat' ? (
-                          <span className="text-emerald-500">₩{earningValue.toLocaleString()}</span>
-                        ) : typeParam === 'live' ? (
-                          <span className="text-red-600 font-black">{Math.floor(liveValue).toLocaleString()}명</span>
-                        ) : typeParam === 'rising' ? (
-                          <span className="text-blue-500">+{formatCount(Math.random() * 50000 + 10000)}명</span>
+                        {isVideo ? (
+                          <span className="text-purple-600">{formatCount(item.statistics.viewCount)}</span>
                         ) : (
-                          <span className="text-slate-700 dark:text-slate-300">{formatCount(channel.statistics.subscriberCount)}</span>
+                          <span className="text-slate-700 dark:text-slate-300">{formatCount(item.statistics.subscriberCount)}</span>
                         )}
                       </td>
                       <td className="px-10 py-6 text-right">
-                        <div className="flex flex-col items-end">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs font-black ${growthPoints > 500 ? 'text-red-500' : 'text-slate-600'}`}>
-                              {growthPoints.toLocaleString()}점
-                            </span>
-                            {growthPoints > 500 ? <TrendingUp size={12} className="text-red-500" /> : <Minus size={12} className="text-slate-300" />}
+                        {isVideo ? (
+                          <span className="text-[11px] font-bold text-slate-400">{new Date(item.snippet.publishedAt).toLocaleDateString()}</span>
+                        ) : (
+                          <div className="flex flex-col items-end">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-black text-red-500">{(Math.random() * 1000 + 100).toFixed(0)}점</span>
+                              <TrendingUp size={12} className="text-red-500" />
+                            </div>
+                            <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+                              <div className="h-full bg-red-500" style={{ width: '70%' }}></div>
+                            </div>
                           </div>
-                          <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
-                            <div 
-                              className={`h-full transition-all duration-1000 ${growthPoints > 500 ? 'bg-red-500' : 'bg-slate-400'}`} 
-                              style={{ width: `${Math.min(100, (growthPoints / 1000) * 100)}%` }}
-                            ></div>
-                          </div>
-                        </div>
+                        )}
                       </td>
                       <td className="px-10 py-6 text-right">
-                        <span className="text-slate-400 text-xs font-bold">{formatCount(channel.statistics.viewCount)}</span>
+                        <span className="text-slate-400 text-xs font-bold">{formatCount(item.statistics.viewCount)}</span>
                       </td>
                       <td className="px-10 py-6 text-right">
-                        <Link to={`/channel/${channel.id}`} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-red-600 hover:text-white transition-all inline-flex shadow-sm">
-                          <TrendingUp size={20} />
-                        </Link>
+                        {isVideo ? (
+                          <a href={`https://www.youtube.com/watch?v=${item.id}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-red-600 hover:text-white transition-all inline-flex shadow-sm">
+                            <PlayCircle size={20} />
+                          </a>
+                        ) : (
+                          <Link to={`/channel/${item.id}`} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-red-600 hover:text-white transition-all inline-flex shadow-sm">
+                            <TrendingUp size={20} />
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   );
@@ -364,12 +383,6 @@ const Ranking: React.FC = () => {
           </div>
         )}
       </div>
-
-      {typeParam === 'videos' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-           {/* 영상 단위 전용 카드 레이아웃 (추가 가능) */}
-        </div>
-      )}
     </div>
   );
 };
