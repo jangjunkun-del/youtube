@@ -17,7 +17,7 @@ interface Config {
   icon: any;
   color: string;
   headerLabel: string;
-  defaultSort: 'subscriber' | 'view' | 'efficiency';
+  defaultSort: string;
   searchQuery: string;
   apiType: 'channel' | 'video';
   apiOrder: 'viewCount' | 'relevance' | 'date';
@@ -41,7 +41,7 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     icon: DollarSign,
     color: 'text-emerald-500',
     headerLabel: 'EST. EARNINGS',
-    defaultSort: 'efficiency',
+    defaultSort: 'superchat',
     searchQuery: 'LIVE',
     apiType: 'channel',
     apiOrder: 'relevance'
@@ -52,7 +52,7 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     icon: Radio,
     color: 'text-red-500',
     headerLabel: 'LIVE VIEWERS',
-    defaultSort: 'view',
+    defaultSort: 'live',
     searchQuery: '실시간 방송',
     apiType: 'channel',
     apiOrder: 'viewCount'
@@ -156,6 +156,36 @@ const Ranking: React.FC = () => {
     queryKey: ['rankingData', currentQuery, pageSize, typeParam, config.apiType],
     queryFn: () => youtubeApi.search(currentQuery, config.apiType, config.apiOrder, pageSize),
   });
+
+  // 데이터 가공 및 확정 정렬 로직
+  const sortedData = useMemo(() => {
+    if (!data) return [];
+    
+    // 1. 각 아이템에 필요한 계산 지표 추가 (Simulated data based on real stats for consistency)
+    const processed = data.map((item: any) => {
+      const views = parseInt(item.statistics?.viewCount || '0');
+      const subs = parseInt(item.statistics?.subscriberCount || '0');
+      const efficiency = subs > 0 ? (views / subs) : 0;
+      
+      // Stable simulated values
+      const superchat = Math.floor(views * 0.005 + subs * 0.1 + (item.id.length * 1000));
+      const live = Math.floor(views * 0.00001 + subs * 0.02);
+      const growth = Math.floor(efficiency * 10 + (subs * 0.001));
+
+      return { ...item, _efficiency: efficiency, _superchat: superchat, _live: live, _growth: growth };
+    });
+
+    // 2. 정렬 수행
+    return [...processed].sort((a, b) => {
+      if (sortBy === 'subscriber') return parseInt(b.statistics?.subscriberCount || '0') - parseInt(a.statistics?.subscriberCount || '0');
+      if (sortBy === 'view') return parseInt(b.statistics?.viewCount || '0') - parseInt(a.statistics?.viewCount || '0');
+      if (sortBy === 'efficiency') return b._efficiency - a._efficiency;
+      if (sortBy === 'superchat') return b._superchat - a._superchat;
+      if (sortBy === 'live') return b._live - a._live;
+      if (sortBy === 'growth') return b._growth - a._growth;
+      return 0;
+    });
+  }, [data, sortBy]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,7 +321,7 @@ const Ranking: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {data.map((item: any, idx: number) => {
+                {sortedData.map((item: any, idx: number) => {
                   const isVideo = config.apiType === 'video';
                   
                   return (
@@ -340,7 +370,11 @@ const Ranking: React.FC = () => {
                         )}
                       </td>
                       <td className="px-10 py-6 text-right font-black text-base">
-                        {isVideo ? (
+                        {typeParam === 'superchat' ? (
+                          <span className="text-emerald-500">₩{item._superchat.toLocaleString()}</span>
+                        ) : typeParam === 'live' ? (
+                          <span className="text-red-600">{item._live.toLocaleString()}명</span>
+                        ) : isVideo ? (
                           <span className="text-purple-600">{formatCount(item.statistics.viewCount)}</span>
                         ) : (
                           <span className="text-slate-700 dark:text-slate-300">{formatCount(item.statistics.subscriberCount)}</span>
@@ -352,11 +386,11 @@ const Ranking: React.FC = () => {
                         ) : (
                           <div className="flex flex-col items-end">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-black text-red-500">{(Math.random() * 1000 + 100).toFixed(0)}점</span>
+                              <span className="text-xs font-black text-red-500">{item._growth.toLocaleString()}점</span>
                               <TrendingUp size={12} className="text-red-500" />
                             </div>
                             <div className="w-20 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
-                              <div className="h-full bg-red-500" style={{ width: '70%' }}></div>
+                              <div className="h-full bg-red-500" style={{ width: `${Math.min(100, (item._growth / 5000) * 100)}%` }}></div>
                             </div>
                           </div>
                         )}
