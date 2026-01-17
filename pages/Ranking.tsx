@@ -44,7 +44,7 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     defaultSort: 'superchat',
     apiType: 'channel',
     apiOrder: 'relevance',
-    searchQuery: 'LIVE'
+    searchQuery: '슈퍼챗 인기 채널'
   },
   live: {
     title: '라이브 시청자',
@@ -66,7 +66,7 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     defaultSort: 'popularity',
     apiType: 'video',
     apiOrder: 'viewCount',
-    searchQuery: ''
+    searchQuery: '인기 급상승'
   },
   rising: {
     title: '구독자 급상승',
@@ -77,7 +77,7 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
     defaultSort: 'growth',
     apiType: 'channel',
     apiOrder: 'relevance',
-    searchQuery: ''
+    searchQuery: '급상승 채널'
   },
   videos: {
     title: '최다 조회 영상',
@@ -94,19 +94,17 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
 
 const CATEGORIES = [
   { label: '🌐 전체', value: '' },
-  { label: '💻 IT/테크', value: 'IT 테크 전자 기기' },
-  { label: '🎮 게임', value: '게임 실황 게이머' },
-  { label: '🍽️ 먹방/요리', value: '먹방 요리 쿡방' },
-  { label: '📈 경제/재테크', value: '주식 경제 재테크 부동산' },
-  { label: '⚖️ 정치', value: '정치 시사' },
-  { label: '📺 뉴스/시사', value: '뉴스 보도 언론' },
-  { label: '🎶 음악', value: '음악 뮤직 뮤지션' },
-  { label: '🎤 K-POP', value: 'K-POP 아이돌' },
-  { label: '✈️ 여행', value: '여행 브이로그' },
-  { label: '👗 뷰티/패션', value: '뷰티 메이크업 패션 스타일' },
-  { label: '⚽ 스포츠', value: '스포츠 야구 축구 운동' },
-  { label: '👶 키즈', value: '키즈 어린이 토이' },
-  { label: '🐾 반려동물', value: '강아지 고양이 반려동물' },
+  { label: '💻 IT/테크', value: 'IT 테크' },
+  { label: '🎮 게임', value: '게임' },
+  { label: '🍽️ 먹방/요리', value: '먹방 요리' },
+  { label: '📈 경제/재테크', value: '경제 재테크' },
+  { label: '⚖️ 정치', value: '정치' },
+  { label: '📺 뉴스/시사', value: '뉴스' },
+  { label: '🎶 음악', value: '음악' },
+  { label: '🎤 K-POP', value: 'K-POP' },
+  { label: '✈️ 여행', value: '여행' },
+  { label: '👗 뷰티/패션', value: '뷰티 패션' },
+  { label: '⚽ 스포츠', value: '스포츠' },
 ];
 
 const formatCount = (num: string | number) => {
@@ -119,6 +117,7 @@ const formatCount = (num: string | number) => {
 };
 
 const parseISO8601Duration = (duration: string) => {
+  if (!duration) return 0;
   const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
   const hours = (parseInt(match?.[1] || '0') || 0);
   const minutes = (parseInt(match?.[2] || '0') || 0);
@@ -143,7 +142,7 @@ const Ranking: React.FC = () => {
   
   const config = RANKING_CONFIGS[typeParam] || RANKING_CONFIGS.overall;
   const currentQuery = qFromUrl || config.searchQuery;
-  const sizeParam = parseInt(searchParams.get('size') || '20');
+  const sizeParam = parseInt(searchParams.get('size') || '50');
   
   const [keyword, setKeyword] = useState('');
   const [pageSize, setPageSize] = useState(sizeParam);
@@ -267,7 +266,7 @@ const Ranking: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[40px] shadow-2xl overflow-hidden">
         <div className="p-6 border-b dark:border-slate-800 flex flex-wrap items-center justify-between bg-slate-50/30 dark:bg-slate-800/20 gap-4">
           <div className="flex items-center gap-2.5">
-            {typeParam === 'overall' ? (
+            {typeParam === 'overall' || qFromUrl ? (
               (['subscriber', 'view', 'efficiency'] as const).map((type) => (
                 <button
                   key={type}
@@ -293,7 +292,7 @@ const Ranking: React.FC = () => {
             <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border dark:border-slate-800">
               <ListOrdered size={16} className="text-slate-400" />
               <select value={pageSize} onChange={(e) => setPageSize(parseInt(e.target.value))} className="text-xs font-black outline-none bg-transparent">
-                {[20, 50, 100].map(size => <option key={size} value={size}>{size}개 보기</option>)}
+                {[20, 50].map(size => <option key={size} value={size}>{size}개 보기</option>)}
               </select>
             </div>
           </div>
@@ -308,6 +307,12 @@ const Ranking: React.FC = () => {
           <div className="p-40 text-center space-y-4">
             <Activity size={40} className="mx-auto text-red-500" />
             <h3 className="text-xl font-black">데이터를 불러올 수 없습니다.</h3>
+          </div>
+        ) : sortedData.length === 0 ? (
+          <div className="p-40 text-center space-y-4">
+            <Search size={40} className="mx-auto text-slate-300" />
+            <h3 className="text-xl font-black text-slate-400">검색 결과가 없습니다.</h3>
+            <p className="text-sm text-slate-400">다른 키워드로 검색해보세요.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
