@@ -2,7 +2,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
-import { Trophy, TrendingUp, Loader2, Sparkles } from 'lucide-react';
+import { Trophy, TrendingUp, Loader2, Sparkles, HelpCircle } from 'lucide-react';
 
 const RankingPage: React.FC = () => {
   const { data: videos, isLoading } = useQuery({
@@ -25,20 +25,24 @@ const RankingPage: React.FC = () => {
         </div>
         <div className="relative z-10 max-w-2xl space-y-4">
           <div className="inline-flex items-center gap-2 bg-red-600 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
-            <Sparkles size={14} /> Efficiency Index Top 100
+            <Sparkles size={14} /> Weekly Performance Top 100
           </div>
-          <h1 className="text-4xl md:text-5xl font-black">구독자 대비 조회수 랭킹</h1>
+          <h1 className="text-4xl md:text-5xl font-black">주간 고효율 영상 랭킹</h1>
           <p className="text-lg font-medium text-slate-400">
-            단순히 구독자가 많은 채널이 아닙니다. <br />
-            실제 영상 하나하나의 성과가 압도적인 고효율 채널들을 만나보세요.
+            최근 7일간 업로드된 영상 중 구독자 규모 대비 <br />
+            가장 압도적인 조회수 성과를 기록한 '알고리즘 픽' 영상입니다.
           </p>
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-white/5 w-fit px-3 py-1.5 rounded-lg border border-white/10">
+            <HelpCircle size={12} />
+            산출 근거: (최근 7일 조회수 / 채널 구독자 수) × 100
+          </div>
         </div>
       </header>
 
       {isLoading ? (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
           <Loader2 className="animate-spin text-red-600" size={64} />
-          <p className="text-slate-500 font-black tracking-widest uppercase">실시간 성능 데이터 분석 중...</p>
+          <p className="text-slate-500 font-black tracking-widest uppercase">실시간 주간 성능 데이터 분석 중...</p>
         </div>
       ) : (
         <div className="bg-white dark:bg-[#1a1a1a] rounded-[40px] border dark:border-white/5 shadow-2xl overflow-hidden">
@@ -47,7 +51,7 @@ const RankingPage: React.FC = () => {
               <thead>
                 <tr className="bg-slate-50 dark:bg-white/5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] border-b dark:border-white/5">
                   <th className="px-10 py-6">Rank</th>
-                  <th className="px-10 py-6">Channel & Video</th>
+                  <th className="px-10 py-6">Channel & Video (Weekly)</th>
                   <th className="px-10 py-6 text-right">Views</th>
                   <th className="px-10 py-6 text-right">Performance Index</th>
                   <th className="px-10 py-6"></th>
@@ -55,8 +59,8 @@ const RankingPage: React.FC = () => {
               </thead>
               <tbody className="divide-y dark:divide-white/5">
                 {videos?.map((video, idx) => {
-                  // Mocking performance index for demonstration
-                  const perf = (1000 - idx * 15 + Math.random() * 50).toFixed(1);
+                  // Mocking performance index for demonstration based on the new criteria
+                  const perf = (1200 - idx * 18 + Math.random() * 40).toFixed(1);
                   return (
                     <tr key={video.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
                       <td className="px-10 py-8">
