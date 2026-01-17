@@ -41,11 +41,11 @@ const CATEGORIES = [
 const SuccessVideosPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [pageSize, setPageSize] = useState(20);
+  const [videoType, setVideoType] = useState<'any' | 'medium' | 'short'>('any');
 
   const { data: videos, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['successVideos', selectedCategory, pageSize],
-    // 아카이브는 최근 30일간의 데이터를 분석합니다.
-    queryFn: () => youtubeApi.getSuccessVideos(selectedCategory, pageSize, 30),
+    queryKey: ['successVideos', selectedCategory, pageSize, videoType],
+    queryFn: () => youtubeApi.getSuccessVideos(selectedCategory, pageSize, 30, videoType),
   });
 
   const handleCategoryChange = (val: string) => {
@@ -65,17 +65,41 @@ const SuccessVideosPage: React.FC = () => {
     <div className="space-y-12 pb-20">
       {/* Header Section */}
       <section className="bg-white dark:bg-[#1a1a1a] p-10 rounded-[40px] border dark:border-white/5 shadow-sm space-y-8">
-        <div className="max-w-3xl space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 bg-red-600 px-4 py-1.5 rounded-full text-[10px] text-white font-black uppercase tracking-[0.2em]">
-              <Sparkles size={12} /> Algorithm Pick
+        <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+          <div className="max-w-3xl space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 bg-red-600 px-4 py-1.5 rounded-full text-[10px] text-white font-black uppercase tracking-[0.2em]">
+                <Sparkles size={12} /> Algorithm Pick
+              </div>
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border dark:border-white/5">
+                <Info size={12} /> 최근 30일 이내 성공 지표 정밀 분석 적용됨
+              </div>
             </div>
-            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border dark:border-white/5">
-              <Info size={12} /> 최근 30일 이내 성공 지표 정밀 분석 적용됨
-            </div>
+            <h2 className="text-4xl font-black tracking-tight">유튜브 성공 영상 아카이브</h2>
+            <p className="text-slate-500 font-bold">최근 한 달간 알고리즘의 선택을 받은 카테고리별 성공 전략 영상을 추출합니다.</p>
           </div>
-          <h2 className="text-4xl font-black tracking-tight">유튜브 성공 영상 아카이브</h2>
-          <p className="text-slate-500 font-bold">과거 데이터가 아닌, 최근 한 달간 알고리즘의 선택을 받은 카테고리별 성공 전략 영상을 추출합니다.</p>
+
+          {/* Video Type Filter */}
+          <div className="flex bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border dark:border-white/10 shrink-0 self-end md:self-auto">
+            <button 
+              onClick={() => setVideoType('any')}
+              className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${videoType === 'any' ? 'bg-white dark:bg-red-600 shadow-sm text-red-600 dark:text-white' : 'text-slate-400'}`}
+            >
+              전체
+            </button>
+            <button 
+              onClick={() => setVideoType('medium')}
+              className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${videoType === 'medium' ? 'bg-white dark:bg-red-600 shadow-sm text-red-600 dark:text-white' : 'text-slate-400'}`}
+            >
+              롱폼
+            </button>
+            <button 
+              onClick={() => setVideoType('short')}
+              className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${videoType === 'short' ? 'bg-white dark:bg-red-600 shadow-sm text-red-600 dark:text-white' : 'text-slate-400'}`}
+            >
+              쇼츠
+            </button>
+          </div>
         </div>
 
         {/* Category Filter */}
@@ -102,7 +126,7 @@ const SuccessVideosPage: React.FC = () => {
       {isLoading ? (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
           <Loader2 className="animate-spin text-red-600" size={48} />
-          <p className="text-slate-400 font-black tracking-widest uppercase animate-pulse text-sm">최근 30일 성공 영상 데이터 수집 중...</p>
+          <p className="text-slate-400 font-black tracking-widest uppercase animate-pulse text-sm">최근 데이터 수집 및 분류 중...</p>
         </div>
       ) : isError ? (
         <div className="py-20 text-center text-slate-400 font-bold">데이터를 불러오는 데 실패했습니다.</div>
@@ -190,7 +214,7 @@ const SuccessVideosPage: React.FC = () => {
       {!isLoading && videos?.length === 0 && (
         <div className="py-32 text-center space-y-4 opacity-30">
           <Zap size={80} className="mx-auto" />
-          <p className="text-xl font-black uppercase tracking-widest">해당 카테고리의 성공 사례를 찾을 수 없습니다</p>
+          <p className="text-xl font-black uppercase tracking-widest">해당 필터의 최근 성공 사례를 찾을 수 없습니다</p>
         </div>
       )}
     </div>

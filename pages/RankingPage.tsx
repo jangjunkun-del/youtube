@@ -7,10 +7,11 @@ import { Link } from 'react-router-dom';
 
 const RankingPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
+  const [videoType, setVideoType] = useState<'any' | 'medium' | 'short'>('any');
 
   const { data: videos, isLoading, isFetching } = useQuery({
-    queryKey: ['efficiencyRanking', pageSize],
-    queryFn: () => youtubeApi.getSuccessVideos('', pageSize),
+    queryKey: ['efficiencyRanking', pageSize, videoType],
+    queryFn: () => youtubeApi.getSuccessVideos('', pageSize, 7, videoType),
   });
 
   const formatNumber = (num: string | number) => {
@@ -22,7 +23,7 @@ const RankingPage: React.FC = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      <header className="bg-slate-900 rounded-[40px] p-12 text-white relative overflow-hidden">
+      <header className="bg-slate-900 rounded-[40px] p-12 text-white relative overflow-hidden flex flex-col md:flex-row justify-between items-end gap-8">
         <div className="absolute top-0 right-0 p-12 opacity-10">
           <Trophy size={200} fill="white" />
         </div>
@@ -39,6 +40,28 @@ const RankingPage: React.FC = () => {
             <HelpCircle size={12} />
             산출 근거: (최근 7일 조회수 / 채널 구독자 수) × 100
           </div>
+        </div>
+
+        {/* Video Type Filter */}
+        <div className="relative z-10 flex bg-white/5 p-1.5 rounded-2xl border border-white/10 shrink-0">
+          <button 
+            onClick={() => setVideoType('any')}
+            className={`px-8 py-3 rounded-xl text-xs font-black transition-all ${videoType === 'any' ? 'bg-red-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+          >
+            전체
+          </button>
+          <button 
+            onClick={() => setVideoType('medium')}
+            className={`px-8 py-3 rounded-xl text-xs font-black transition-all ${videoType === 'medium' ? 'bg-red-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+          >
+            롱폼
+          </button>
+          <button 
+            onClick={() => setVideoType('short')}
+            className={`px-8 py-3 rounded-xl text-xs font-black transition-all ${videoType === 'short' ? 'bg-red-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+          >
+            쇼츠
+          </button>
         </div>
       </header>
 

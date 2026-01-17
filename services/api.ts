@@ -13,7 +13,6 @@ export const youtubeApi = {
 
   // 채널 상세 정보 가져오기 (ID 또는 핸들)
   getChannelDetail: async (identifier: string): Promise<YouTubeChannel | null> => {
-    // identifier could be ID or Handle
     let channelId = identifier;
     if (identifier.startsWith('@') || !identifier.startsWith('UC')) {
       const searchRes = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=channel&q=${encodeURIComponent(identifier)}&maxResults=1`);
@@ -34,18 +33,27 @@ export const youtubeApi = {
     return data.items || [];
   },
 
-  // 채널 검색 (기본 정보 + 통계 포함)
-  searchChannels: async (query: string, maxResults: number = 10): Promise<YouTubeChannel[]> => {
-    const searchRes = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=channel&q=${encodeURIComponent(query)}&maxResults=${maxResults}`);
-    const searchData = await searchRes.json();
-    const channelIds = searchData.items?.map((item: any) => item.id.channelId).filter(Boolean).join(',') || '';
-    if (!channelIds) return [];
-    return youtubeApi.getChannelsByIds(channelIds);
-  },
+  // 통합 검색 (최근 기간 및 영상 길이 필터 추가)
+  search: async (
+    query: string, 
+    type: 'channel' | 'video', 
+    order: string = 'relevance', 
+    maxResults: number = 20, 
+    days?: number,
+    duration: 'any' | 'short' | 'medium' | 'long' = 'any'
+  ): Promise<any[]> => {
+    let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR`;
+    
+    if (days) {
+      const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      url += `&publishedAfter=${publishedAfter}`;
+    }
 
-  // 통합 검색 (채널 또는 비디오, 상세 정보 포함)
-  search: async (query: string, type: 'channel' | 'video', order: string = 'relevance', maxResults: number = 20): Promise<any[]> => {
-    const searchRes = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR`);
+    if (type === 'video' && duration !== 'any') {
+      url += `&videoDuration=${duration}`;
+    }
+
+    const searchRes = await fetch(url);
     const searchData = await searchRes.json();
     
     if (type === 'video') {
@@ -74,14 +82,23 @@ export const youtubeApi = {
     return videoData.items || [];
   },
 
-  // 성공 영상 검색 (성능 지수 기준 - 파라미터로 받은 days 이내 데이터로 한정)
-  getSuccessVideos: async (category: string = '', maxResults: number = 20, days: number = 7): Promise<any[]> => {
-    // 지정된 일수(days) 이전 날짜 계산 (ISO 8601 형식)
+  // 성공 영상 검색 (영상 길이 필터 추가)
+  getSuccessVideos: async (
+    category: string = '', 
+    maxResults: number = 20, 
+    days: number = 7,
+    duration: 'any' | 'short' | 'medium' | 'long' = 'any'
+  ): Promise<any[]> => {
     const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const query = category ? `${category} 인기 영상` : "인기 급상승";
     
-    // publishedAfter 파라미터를 사용하여 해당 기간 영상만 검색
-    const res = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR&publishedAfter=${publishedAfter}`);
+    let url = `${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR&publishedAfter=${publishedAfter}`;
+    
+    if (duration !== 'any') {
+      url += `&videoDuration=${duration}`;
+    }
+
+    const res = await fetch(url);
     const data = await res.json();
     
     const videoIds = data.items?.map((v: any) => v.id.videoId).join(',') || '';

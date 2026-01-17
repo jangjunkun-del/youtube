@@ -15,7 +15,8 @@ const Compare: React.FC = () => {
     if (!keyword) return;
     setIsLoading(true);
     try {
-      const results = await youtubeApi.searchChannels(keyword);
+      // Fixed: changed searchChannels to search with 'channel' type
+      const results = await youtubeApi.search(keyword, 'channel');
       setSearchResults(results);
     } finally {
       setIsLoading(false);

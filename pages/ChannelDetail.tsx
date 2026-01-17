@@ -43,7 +43,8 @@ const ChannelDetail: React.FC = () => {
 
   const { data: similarChannels } = useQuery({
     queryKey: ['similarChannels', channelData?.snippet.title],
-    queryFn: () => youtubeApi.searchChannels(channelData!.snippet.title, 4),
+    // Fixed: changed searchChannels to search with 'channel' type
+    queryFn: () => youtubeApi.search(channelData!.snippet.title, 'channel', 'relevance', 4),
     enabled: !!channelData,
   });
 
