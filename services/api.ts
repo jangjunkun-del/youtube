@@ -4,23 +4,27 @@ import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 const API_BASE = '/api';
 
 export const youtubeApi = {
-  // 공통 fetch 래퍼: 할당량 초과 감지 로직 추가
+  // 공통 fetch 래퍼: 할당량 초과 감지 로직 강화
   safeFetch: async (url: string) => {
     try {
       const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
 
+      // 1. 응답 바디 내부에 직접적인 에러 정보가 있는지 먼저 확인 (프록시 특성 고려)
+      const errorReason = data.error?.errors?.[0]?.reason;
+      if (errorReason === 'quotaExceeded' || (res.status === 403 && errorReason === 'quotaExceeded')) {
+        throw new Error('QUOTA_LIMIT_REACHED');
+      }
+
       if (!res.ok) {
-        // 할당량 소진 여부 정밀 체크
-        const errorReason = data.error?.errors?.[0]?.reason;
-        if (res.status === 403 && errorReason === 'quotaExceeded') {
-          throw new Error('QUOTA_LIMIT_REACHED');
-        }
         console.warn(`YouTube API error: ${res.status}`, data.error?.message);
+        // 일반적인 에러의 경우 빈 배열을 반환하여 앱이 멈추지 않게 함
         return { items: [] };
       }
+      
       return data;
     } catch (e: any) {
+      // 할당량 에러는 UI에 표시하기 위해 상위로 던짐
       if (e.message === 'QUOTA_LIMIT_REACHED') throw e;
       console.error("Fetch failed:", e);
       return { items: [] };

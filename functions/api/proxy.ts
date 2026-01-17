@@ -28,13 +28,18 @@ export async function onRequest(context: { request: Request, env: { YOUTUBE_API_
     const response = await fetch(youtubeUrl);
     const data = await response.json();
 
+    // 유튜브 API의 실제 상태 코드(response.status)를 그대로 전달하는 것이 중요합니다.
     return new Response(JSON.stringify(data), {
+      status: response.status,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*', // 필요에 따라 특정 도메인으로 제한 가능
+        'Access-Control-Allow-Origin': '*',
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Failed to fetch from YouTube API' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Failed to fetch from YouTube API' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
