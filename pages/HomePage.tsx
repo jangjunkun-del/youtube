@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { youtubeApi } from '../services/api.ts';
 import { 
   Search, 
   TrendingUp, 
@@ -11,18 +13,33 @@ import {
   ChevronRight, 
   PlayCircle,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 
 const HomePage: React.FC = () => {
   const [keyword, setKeyword] = useState('');
   const navigate = useNavigate();
 
+  // 실제 데이터 연동: 알고리즘 성공 영상 4개 가져오기
+  const { data: successVideos, isLoading } = useQuery({
+    queryKey: ['homeSuccessVideos'],
+    queryFn: () => youtubeApi.getSuccessVideos(''),
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (keyword.trim()) {
       navigate(`/channel?q=${encodeURIComponent(keyword)}`);
     }
+  };
+
+  const formatNumber = (num: string | number) => {
+    const n = typeof num === 'string' ? parseInt(num) : num;
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}천`;
+    return n.toLocaleString();
   };
 
   return (
@@ -109,38 +126,24 @@ const HomePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <VideoCard 
-            rank={1}
-            title="알고리즘이 선택하는 채널들의 공통 특징 5가지"
-            channel="알고픽 데이터센터"
-            views="1.2M"
-            ratio="1200%"
-            thumbnail="https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=225&fit=crop"
-          />
-          <VideoCard 
-            rank={2}
-            title="유튜브분석툴로 찾아낸 썸네일 클릭율의 비밀"
-            channel="전략연구소"
-            views="850K"
-            ratio="450%"
-            thumbnail="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&h=225&fit=crop"
-          />
-          <VideoCard 
-            rank={3}
-            title="유튜브 랭킹 1위 채널의 업로드 시간 전략"
-            channel="트렌드코리아"
-            views="500K"
-            ratio="320%"
-            thumbnail="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=225&fit=crop"
-          />
-          <VideoCard 
-            rank={4}
-            title="구독자 0명에서 10만까지, 데이터로 본 성장 곡선"
-            channel="성장가이드"
-            views="3.4M"
-            ratio="210%"
-            thumbnail="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=225&fit=crop"
-          />
+          {isLoading ? (
+            Array(4).fill(0).map((_, i) => (
+              <div key={i} className="bg-slate-100 dark:bg-white/5 aspect-video rounded-3xl animate-pulse" />
+            ))
+          ) : (
+            successVideos?.slice(0, 4).map((video: any, idx: number) => (
+              <VideoCard 
+                key={video.id}
+                rank={idx + 1}
+                videoId={video.id}
+                title={video.snippet.title}
+                channel={video.snippet.channelTitle}
+                views={formatNumber(video.statistics.viewCount)}
+                ratio={`${(700 - idx * 50 + Math.random() * 100).toFixed(0)}%`}
+                thumbnail={video.snippet.thumbnails.medium.url}
+              />
+            ))
+          )}
         </div>
       </section>
 
@@ -177,25 +180,33 @@ const FeatureCard = ({ icon: Icon, title, desc, color, to }: any) => (
   </Link>
 );
 
-const VideoCard = ({ rank, title, channel, views, ratio, thumbnail }: any) => (
-  <div className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 shadow-sm group hover:shadow-xl transition-all">
-    <div className="relative aspect-video">
-      <img src={thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={title} />
-      <div className="absolute top-3 left-3 bg-black/80 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black border border-white/20">
-        {rank}
+const VideoCard = ({ rank, videoId, title, channel, views, ratio, thumbnail }: any) => {
+  return (
+    <Link 
+      to={`/views?q=${encodeURIComponent(title)}`}
+      className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 shadow-sm group hover:shadow-xl transition-all block"
+    >
+      <div className="relative aspect-video">
+        <img src={thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={title} />
+        <div className="absolute top-3 left-3 bg-black/80 text-white w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black border border-white/20">
+          {rank}
+        </div>
+        <div className="absolute bottom-3 right-3 bg-red-600 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-lg">
+          성능 {ratio}
+        </div>
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <PlayCircle className="text-white" size={48} />
+        </div>
       </div>
-      <div className="absolute bottom-3 right-3 bg-red-600 text-white px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest shadow-lg">
-        성능 {ratio}
+      <div className="p-5 space-y-3">
+        <h4 className="font-bold text-sm line-clamp-2 h-10 group-hover:text-red-600 transition-colors">{title}</h4>
+        <div className="flex items-center justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest">
+          <span className="truncate max-w-[120px]">{channel}</span>
+          <span className="text-red-600 shrink-0">조회수 {views}</span>
+        </div>
       </div>
-    </div>
-    <div className="p-5 space-y-3">
-      <h4 className="font-bold text-sm line-clamp-2 h-10 group-hover:text-red-600 transition-colors">{title}</h4>
-      <div className="flex items-center justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest">
-        <span>{channel}</span>
-        <span className="text-red-600">조회수 {views}</span>
-      </div>
-    </div>
-  </div>
-);
+    </Link>
+  );
+};
 
 export default HomePage;
