@@ -5,87 +5,64 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- Google Search Console & Naver Verification -->
-  <meta name="google-site-verification" content="-B0vnXQTw7iPZtM8l2NhxlmXgIoKXOOO3qRK91EkcwU" />
-  <meta name="naver-site-verification" content="ff2a5f1039d781882a97bb59b16841554a219129" />
-
-
-  <!-- Primary Meta Tags -->
-  <title>YouRank - 유튜브 채널 랭킹 및 성장 지표 분석</title>
-  <meta name="title" content="YouRank - 유튜브 채널 랭킹 및 성장 지표 분석">
-  <meta name="description" content="유튜브 채널 순위와 성장 잠재력을 실시간 데이터로 확인하세요. 카테고리별 랭킹 분석 및 채널 비교 기능을 제공합니다.">
-  <meta name="keywords" content="유튜브 랭킹, 유튜브 순위, 채널 분석, 구독자 순위, 유튜브 수익 계산, 유튜브 성장성, IT 유튜버 순위, 국뽕 채널 분석">
-  <meta name="author" content="YouRank Team">
+  <!-- SEO: Primary Meta Tags -->
+  <title>유튜브분석툴 | 유튜브 조회수 분석 · 썸네일 성과 분석</title>
+  <meta name="title" content="유튜브분석툴 | 유튜브 조회수 분석 · 썸네일 성과 분석">
+  <meta name="description" content="유튜브분석툴은 구독자 대비 조회수가 잘 나오는 영상을 분석하여 썸네일 성과와 유튜브 트렌드를 알려주는 유튜브 분석 서비스입니다.">
+  <meta name="keywords" content="유튜브분석툴, 유튜브조회수분석, 유튜브썸네일분석, 유튜브채널분석, 유튜브랭킹, 유튜브성공영상, 유튜브알고리즘, 유튜브조회수올리기, 유튜브잘되는영상, 유튜브트렌드">
+  <meta name="author" content="유튜브분석툴 Team">
   <link rel="canonical" href="https://rangking.codingfun.kr/">
 
-  <!-- Open Graph / Facebook -->
+  <!-- SEO: Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://rangking.codingfun.kr/">
-  <meta property="og:title" content="YouRank - 데이터로 증명하는 유튜브 랭킹">
-  <meta property="og:description" content="실시간 유튜브 채널 분석 및 랭킹 시스템. 분야별 유망 채널을 찾고 비교해보세요.">
+  <meta property="og:title" content="유튜브분석툴 - 데이터 기반 유튜브 성장 전략">
+  <meta property="og:description" content="조회수 폭발 영상과 썸네일 성공 사례를 분석하여 유튜브 알고리즘의 비밀을 파헤칩니다.">
   <meta property="og:image" content="https://rangking.codingfun.kr/og-image.png">
 
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://rangking.codingfun.kr/">
-  <meta property="twitter:title" content="YouRank - 유튜브 채널 분석 대시보드">
-  <meta property="twitter:description" content="데이터 기반 유튜브 채널 성장성 측정 및 비교 도구.">
-  <meta property="twitter:image" content="https://rangking.codingfun.kr/og-image.png">
-
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23ef4444%22/><path d=%22M40 30L70 50L40 70V30Z%22 fill=%22white%22/></svg>">
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "YouRank",
-    "operatingSystem": "Web",
-    "applicationCategory": "BusinessApplication",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "KRW"
-    },
-    "description": "YouTube 채널의 구독자 순위, 조회수 분석, 성장 가능성을 데이터로 확인하는 대시보드 서비스입니다.",
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "120"
-    }
-  }
-  </script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23ff0000%22/><path d=%22M40 30L70 50L40 70V30Z%22 fill=%22white%22/></svg>">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class'
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              red: '#ff0000',
+              dark: '#0f0f0f'
+            }
+          }
+        }
+      }
     }
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); }
+    body { font-family: 'Pretendard', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; }
   </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/": "https://esm.sh/react-dom@19.0.0/",
-    "lucide-react": "https://esm.sh/lucide-react@0.475.0?external=react",
-    "react-router-dom": "https://esm.sh/react-router-dom@7.2.0?external=react,react-dom",
-    "recharts": "https://esm.sh/recharts@2.15.0?external=react,react-dom",
-    "@tanstack/react-query": "https://esm.sh/@tanstack/react-query@5.66.0?external=react,react-dom"
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@19.0.0",
+      "react/": "https://esm.sh/react@19.0.0/",
+      "react-dom": "https://esm.sh/react-dom@19.0.0",
+      "react-dom/": "https://esm.sh/react-dom@19.0.0/",
+      "lucide-react": "https://esm.sh/lucide-react@0.475.0?external=react",
+      "react-router-dom": "https://esm.sh/react-router-dom@7.2.0?external=react,react-dom",
+      "recharts": "https://esm.sh/recharts@2.15.0?external=react,react-dom",
+      "@tanstack/react-query": "https://esm.sh/@tanstack/react-query@5.66.0?external=react,react-dom"
+    }
   }
-}
-</script>
+  </script>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+<body class="bg-[#f9f9f9] text-[#0f0f0f] dark:bg-[#0f0f0f] dark:text-[#f1f1f1] transition-colors duration-300">
   <div id="root"></div>
   <script type="module" src="index.tsx"></script>
 </body>
