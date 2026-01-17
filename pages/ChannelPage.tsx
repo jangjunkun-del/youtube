@@ -143,10 +143,17 @@ const ChannelPage: React.FC = () => {
           <div className="space-y-6">
             <h4 className="text-xl font-black px-2">영상별 상대 성과 분석 (구독자 대비 조회수)</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {videos?.map(video => {
+              {videos?.slice()
+                .sort((a, b) => {
+                  const subs = parseInt(channel.statistics.subscriberCount) || 1;
+                  const perfA = (parseInt(a.statistics.viewCount) / subs);
+                  const perfB = (parseInt(b.statistics.viewCount) / subs);
+                  return perfB - perfA; // 성과지수 내림차순 정렬
+                })
+                .map(video => {
                 const views = parseInt(video.statistics.viewCount);
                 const subs = parseInt(channel.statistics.subscriberCount);
-                const perf = ((views / subs) * 100).toFixed(1);
+                const perf = ((views / (subs || 1)) * 100).toFixed(1);
                 
                 return (
                   <div key={video.id} className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 group hover:shadow-xl transition-all">
