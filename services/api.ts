@@ -33,7 +33,7 @@ export const youtubeApi = {
     return data.items || [];
   },
 
-  // 통합 검색 (최근 기간 및 영상 길이 필터 추가)
+  // 통합 검색 (최근 기간 및 영상 길이 필터 최적화 + Fallback 로직)
   search: async (
     query: string, 
     type: 'channel' | 'video', 
@@ -42,31 +42,49 @@ export const youtubeApi = {
     days?: number,
     duration: 'any' | 'short' | 'medium' | 'long' = 'any'
   ): Promise<any[]> => {
-    let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR`;
-    
-    if (days) {
-      const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-      url += `&publishedAfter=${publishedAfter}`;
-    }
+    const fetchWithFilter = async (targetDuration: string, isRetry: boolean = false) => {
+      let enhancedQuery = query;
+      // 검색어 보정: 롱폼일 경우 Shorts 제외, 쇼츠일 경우 Shorts 강조
+      if (type === 'video') {
+        if (duration === 'short') enhancedQuery += " #Shorts";
+        else if (duration === 'medium' || duration === 'long') enhancedQuery += " -Shorts -쇼츠";
+      }
 
-    if (type === 'video' && duration !== 'any') {
-      url += `&videoDuration=${duration}`;
-    }
+      let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(enhancedQuery)}&regionCode=KR`;
+      
+      if (days) {
+        const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        url += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
+      }
 
-    const searchRes = await fetch(url);
-    const searchData = await searchRes.json();
-    
-    if (type === 'video') {
-      const videoIds = searchData.items?.map((v: any) => v.id.videoId).filter(Boolean).join(',') || '';
-      if (!videoIds) return [];
-      const videoRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
-      const videoData = await videoRes.json();
-      return videoData.items || [];
-    } else {
-      const channelIds = searchData.items?.map((c: any) => c.id.channelId).filter(Boolean).join(',') || '';
-      if (!channelIds) return [];
-      return youtubeApi.getChannelsByIds(channelIds);
-    }
+      // 1차 시도에서는 엄격한 videoDuration 적용, 재시도(Fallback) 시에는 해제하여 검색어 보정에만 의존
+      if (type === 'video' && targetDuration !== 'any' && !isRetry) {
+        url += `&videoDuration=${targetDuration}`;
+      }
+
+      const searchRes = await fetch(url);
+      const searchData = await searchRes.json();
+      
+      if (type === 'video') {
+        const items = searchData.items || [];
+        // 결과가 0건이고 아직 재시도 전이라면, duration 필터를 풀고 검색어 필터만으로 재시도
+        if (items.length === 0 && targetDuration !== 'any' && !isRetry) {
+          return fetchWithFilter('any', true);
+        }
+
+        const videoIds = items.map((v: any) => v.id.videoId).filter(Boolean).join(',') || '';
+        if (!videoIds) return [];
+        const videoRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
+        const videoData = await videoRes.json();
+        return videoData.items || [];
+      } else {
+        const channelIds = searchData.items?.map((c: any) => c.id.channelId).filter(Boolean).join(',') || '';
+        if (!channelIds) return [];
+        return youtubeApi.getChannelsByIds(channelIds);
+      }
+    };
+
+    return fetchWithFilter(duration);
   },
 
   // 최근 영상 및 성과 분석
@@ -82,31 +100,44 @@ export const youtubeApi = {
     return videoData.items || [];
   },
 
-  // 성공 영상 검색 (영상 길이 필터 추가)
+  // 성공 영상 검색 (Smart Fallback 적용)
   getSuccessVideos: async (
     category: string = '', 
     maxResults: number = 20, 
     days: number = 7,
     duration: 'any' | 'short' | 'medium' | 'long' = 'any'
   ): Promise<any[]> => {
-    const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    const query = category ? `${category} 인기 영상` : "인기 급상승";
-    
-    let url = `${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR&publishedAfter=${publishedAfter}`;
-    
-    if (duration !== 'any') {
-      url += `&videoDuration=${duration}`;
-    }
+    const fetchSuccessWithFilter = async (targetDuration: string, isRetry: boolean = false) => {
+      const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      let query = category ? `${category} 인기 영상` : "인기 급상승";
+      
+      if (targetDuration === 'short') query += " #Shorts";
+      else if (targetDuration === 'medium' || targetDuration === 'long') query += " -Shorts -쇼츠";
+      
+      let url = `${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR&publishedAfter=${encodeURIComponent(publishedAfter)}`;
+      
+      if (targetDuration !== 'any' && !isRetry) {
+        url += `&videoDuration=${targetDuration}`;
+      }
 
-    const res = await fetch(url);
-    const data = await res.json();
-    
-    const videoIds = data.items?.map((v: any) => v.id.videoId).join(',') || '';
-    if (!videoIds) return [];
+      const res = await fetch(url);
+      const data = await res.json();
+      const items = data.items || [];
 
-    const videoRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
-    const videoData = await videoRes.json();
-    return videoData.items || [];
+      // 결과 0건 시 Fallback 로직
+      if (items.length === 0 && targetDuration !== 'any' && !isRetry) {
+        return fetchSuccessWithFilter('any', true);
+      }
+      
+      const videoIds = items.map((v: any) => v.id.videoId).join(',') || '';
+      if (!videoIds) return [];
+
+      const videoRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
+      const videoData = await videoRes.json();
+      return videoData.items || [];
+    };
+
+    return fetchSuccessWithFilter(duration);
   },
 
   // 구독자 대비 조회수(상대 성과) 계산 로직
