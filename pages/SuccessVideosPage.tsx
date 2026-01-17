@@ -13,6 +13,7 @@ import {
   Sparkles,
   Info
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const CATEGORIES = [
   { label: '🔥 전체 인기', value: '' },
@@ -26,6 +27,7 @@ const CATEGORIES = [
   { label: '🎵 음악/K-POP', value: '음악 KPOP' },
   { label: '📚 교육/지식', value: '교육 지식' },
   { label: '🎨 애니메이션', value: '애니메이션' },
+  { label: '🛍️ 쇼핑/언박싱', value: '쇼핑 언박싱' },
   { label: '🍿 영화/드라마', value: '영화 드라마' },
   { label: '🐶 반려동물', value: '반려동물 강아지 고양이' },
   { label: '⛺ 여행/캠핑', value: '여행 캠핑' },
@@ -145,14 +147,12 @@ const SuccessVideosPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <a 
-                    href={`https://youtube.com/watch?v=${video.id}`} 
-                    target="_blank" 
-                    rel="noreferrer"
+                  <Link 
+                    to={`/views?q=${encodeURIComponent(video.snippet.title)}`}
                     className="w-full py-3 bg-slate-50 dark:bg-white/5 hover:bg-slate-900 dark:hover:bg-red-600 hover:text-white rounded-2xl text-[11px] font-black text-slate-600 dark:text-slate-400 transition-all text-center uppercase tracking-widest"
                   >
                     영상 전략 분석하기
-                  </a>
+                  </Link>
                 </div>
               </div>
             );

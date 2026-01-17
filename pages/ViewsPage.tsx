@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
 import { 
@@ -89,7 +89,11 @@ const ViewsPage: React.FC = () => {
               .map((video) => {
                 const velocity = calculateVelocity(video.statistics.viewCount, video.snippet.publishedAt);
                 return (
-                  <div key={video.id} className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 group hover:shadow-2xl transition-all flex flex-col">
+                  <Link 
+                    key={video.id} 
+                    to={`/views?q=${encodeURIComponent(video.snippet.title)}`}
+                    className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 group hover:shadow-2xl transition-all flex flex-col"
+                  >
                     <div className="relative aspect-video overflow-hidden">
                       <img src={video.snippet.thumbnails.medium.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
                       <div className="absolute top-3 right-3 bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
@@ -126,7 +130,7 @@ const ViewsPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
             })}
           </div>

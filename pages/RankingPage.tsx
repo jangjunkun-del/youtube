@@ -3,6 +3,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
 import { Trophy, TrendingUp, Loader2, Sparkles, HelpCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const RankingPage: React.FC = () => {
   const { data: videos, isLoading } = useQuery({
@@ -59,7 +60,6 @@ const RankingPage: React.FC = () => {
               </thead>
               <tbody className="divide-y dark:divide-white/5">
                 {videos?.map((video, idx) => {
-                  // Mocking performance index for demonstration based on the new criteria
                   const perf = (1200 - idx * 18 + Math.random() * 40).toFixed(1);
                   return (
                     <tr key={video.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
@@ -69,13 +69,13 @@ const RankingPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-10 py-8">
-                        <div className="flex items-center gap-6">
+                        <Link to={`/views?q=${encodeURIComponent(video.snippet.title)}`} className="flex items-center gap-6">
                           <img src={video.snippet.thumbnails.default.url} className="w-16 h-10 rounded-lg object-cover shadow-lg group-hover:scale-110 transition-transform" />
                           <div className="space-y-1">
                             <p className="font-bold text-sm line-clamp-1 group-hover:text-red-600 transition-colors">{video.snippet.title}</p>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{video.snippet.channelTitle}</p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-10 py-8 text-right font-black">
                         {formatNumber(video.statistics.viewCount)}
@@ -87,9 +87,9 @@ const RankingPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-10 py-8 text-right">
-                        <a href={`https://youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-red-600 hover:text-white transition-all inline-flex">
+                        <Link to={`/views?q=${encodeURIComponent(video.snippet.title)}`} className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-red-600 hover:text-white transition-all inline-flex">
                           <Sparkles size={18} />
-                        </a>
+                        </Link>
                       </td>
                     </tr>
                   )
