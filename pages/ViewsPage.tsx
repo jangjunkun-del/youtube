@@ -21,9 +21,10 @@ const ViewsPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(24);
   const [videoType, setVideoType] = useState<'any' | 'medium' | 'short'>('any');
 
+  // DB 우선 조회 로직으로 변경
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ['viewsAnalysis', queryParam, pageSize, videoType],
-    queryFn: () => youtubeApi.search(queryParam || '인기 급상승', 'video', 'viewCount', pageSize, 7, videoType),
+    queryFn: () => youtubeApi.getViewsAnalysis(queryParam || '인기 급상승', pageSize),
   });
 
   const videos = data?.items || [];
@@ -73,7 +74,7 @@ const ViewsPage: React.FC = () => {
         <div className="py-40 flex flex-col items-center justify-center gap-4 text-slate-400"><Loader2 className="animate-spin text-red-600" size={48} /></div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {videos.map((video) => {
+          {videos.map((video: any) => {
             const velocity = calculateVelocity(video.statistics.viewCount, video.snippet.publishedAt);
             return (
               <Link key={video.id} to={`/video/${video.id}`} className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 group hover:shadow-2xl transition-all p-5 space-y-4">
