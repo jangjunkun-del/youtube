@@ -173,6 +173,7 @@ const Ranking: React.FC = () => {
       const liveViewers = Math.floor(views * 0.00005 + (Math.random() * 5000));
       const popularityScore = (views * 0.7) + (likes * 20) + (comments * 50);
       const growthScore = (views / (subs || 1) * 100) + (Math.random() * 2000);
+      const efficiency = subs > 0 ? (views / subs) : 0;
 
       return { 
         ...item, 
@@ -181,13 +182,15 @@ const Ranking: React.FC = () => {
         _superchat: superchat, 
         _live: liveViewers, 
         _popularity: popularityScore, 
-        _growth: growthScore 
+        _growth: growthScore,
+        _efficiency: efficiency
       };
     });
 
     return [...processed].sort((a, b) => {
       if (sortBy === 'subscriber') return b._subs - a._subs;
       if (sortBy === 'view') return b._views - a._views;
+      if (sortBy === 'efficiency') return b._efficiency - a._efficiency;
       if (sortBy === 'superchat') return b._superchat - a._superchat;
       if (sortBy === 'live') return b._live - a._live;
       if (sortBy === 'popularity') return b._popularity - a._popularity;
@@ -264,10 +267,26 @@ const Ranking: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[40px] shadow-2xl overflow-hidden">
         <div className="p-6 border-b dark:border-slate-800 flex flex-wrap items-center justify-between bg-slate-50/30 dark:bg-slate-800/20 gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-2 text-xs font-black text-slate-400 px-2 py-1">
-              <config.icon size={16} />
-              <span className="uppercase tracking-widest">{sortBy.toUpperCase()} 정렬 기준 적용됨</span>
-            </div>
+            {typeParam === 'overall' ? (
+              (['subscriber', 'view', 'efficiency'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setSortBy(type)}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all border-2 ${
+                    sortBy === type 
+                    ? 'bg-slate-900 dark:bg-red-600 border-slate-900 dark:border-red-600 text-white shadow-lg' 
+                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-300'
+                  }`}
+                >
+                  {type === 'subscriber' ? '구독자순' : type === 'view' ? '조회수순' : '잠재력순'}
+                </button>
+              ))
+            ) : (
+              <div className="flex items-center gap-2 text-xs font-black text-slate-400 px-2 py-1">
+                <config.icon size={16} />
+                <span className="uppercase tracking-widest">{sortBy.toUpperCase()} 정렬 기준 적용됨</span>
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-4">
