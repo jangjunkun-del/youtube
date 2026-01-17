@@ -38,7 +38,7 @@ const HomePage: React.FC = () => {
 
         <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
           유튜브 알고리즘, <br />
-          <span className="text-red-600">알고픽</span>으로 진짜 비밀을 분석하세요
+          <span className="text-red-600">알고픽</span>으로 <span className="text-red-600">진짜 비밀</span>을 분석하세요
         </h1>
 
         <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 font-medium max-w-2xl mx-auto">
@@ -189,7 +189,7 @@ const VideoCard = ({ rank, title, channel, views, ratio, thumbnail }: any) => (
       </div>
     </div>
     <div className="p-5 space-y-3">
-      <h4 className="font-bold text-sm line-clamp-2 leading-snug h-10 group-hover:text-red-600 transition-colors">{title}</h4>
+      <h4 className="font-bold text-sm line-clamp-2 h-10 group-hover:text-red-600 transition-colors">{title}</h4>
       <div className="flex items-center justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest">
         <span>{channel}</span>
         <span className="text-red-600">조회수 {views}</span>
