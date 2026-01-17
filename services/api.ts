@@ -74,14 +74,14 @@ export const youtubeApi = {
     return videoData.items || [];
   },
 
-  // 성공 영상 검색 (성능 지수 기준 - 최근 7일 이내 데이터로 한정)
-  getSuccessVideos: async (category: string = '', maxResults: number = 20): Promise<any[]> => {
-    // 현재 시간으로부터 7일 전 날짜 계산 (ISO 8601 형식)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // 성공 영상 검색 (성능 지수 기준 - 파라미터로 받은 days 이내 데이터로 한정)
+  getSuccessVideos: async (category: string = '', maxResults: number = 20, days: number = 7): Promise<any[]> => {
+    // 지정된 일수(days) 이전 날짜 계산 (ISO 8601 형식)
+    const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     const query = category ? `${category} 인기 영상` : "인기 급상승";
     
-    // publishedAfter 파라미터를 추가하여 최근 7일 영상만 검색
-    const res = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR&publishedAfter=${sevenDaysAgo}`);
+    // publishedAfter 파라미터를 사용하여 해당 기간 영상만 검색
+    const res = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR&publishedAfter=${publishedAfter}`);
     const data = await res.json();
     
     const videoIds = data.items?.map((v: any) => v.id.videoId).join(',') || '';
