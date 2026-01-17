@@ -40,8 +40,9 @@ const VideoDetailPage: React.FC = () => {
     setIsAnalyzing(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // 복잡한 데이터 분석을 위해 gemini-3-pro-preview 모델 사용
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3-pro-preview",
         contents: `분석할 영상 제목: "${video?.snippet.title}"
         분석할 채널명: "${video?.snippet.channelTitle}"
         이 영상의 성공 전략을 '알고리즘 데이터 분석가' 관점에서 세밀하게 분석해주세요.`,
@@ -63,7 +64,7 @@ const VideoDetailPage: React.FC = () => {
       const result = JSON.parse(response.text || '{}');
       setAiAnalysis(result);
     } catch (e) {
-      console.error(e);
+      console.error("AI Analysis Error:", e);
     } finally {
       setIsAnalyzing(false);
     }
@@ -199,14 +200,23 @@ const VideoDetailPage: React.FC = () => {
         </div>
 
         <div className="space-y-8">
-          <div className="bg-slate-900 p-8 rounded-[40px] text-white space-y-6">
+          <div className="bg-slate-900 p-8 rounded-[40px] text-white space-y-6 shadow-2xl">
             <h3 className="text-xl font-black">시각적 분석 결과</h3>
             <div className="space-y-4">
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/10 min-h-[100px] flex flex-col justify-center">
                 <p className="text-[10px] text-slate-500 font-bold mb-2">썸네일 구성 특징</p>
-                <p className="text-xs font-medium leading-relaxed opacity-90">
-                  {aiAnalysis?.thumbnailInsight || "데이터 로딩 중..."}
-                </p>
+                <div className="text-xs font-medium leading-relaxed opacity-90">
+                  {isAnalyzing ? (
+                    <div className="flex items-center gap-2 text-slate-400 animate-pulse">
+                      <Loader2 size={12} className="animate-spin" />
+                      AI 분석 중...
+                    </div>
+                  ) : aiAnalysis?.thumbnailInsight ? (
+                    aiAnalysis.thumbnailInsight
+                  ) : (
+                    <span className="text-slate-500">분석 대기 중</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 text-[10px] font-bold text-red-500 bg-red-500/10 px-3 py-2 rounded-xl">
                  <Info size={12} />
