@@ -33,7 +33,7 @@ export const youtubeApi = {
     return data.items || [];
   },
 
-  // 통합 검색 (최근 기간 및 영상 길이 필터 추가)
+  // 통합 검색 (최근 기간 및 영상 길이 필터 최적화)
   search: async (
     query: string, 
     type: 'channel' | 'video', 
@@ -42,13 +42,21 @@ export const youtubeApi = {
     days?: number,
     duration: 'any' | 'short' | 'medium' | 'long' = 'any'
   ): Promise<any[]> => {
-    let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR`;
+    // 필터 성능을 높이기 위해 쿼리 보정 (쇼츠일 경우 Shorts 키워드 추가)
+    let enhancedQuery = query;
+    if (type === 'video') {
+      if (duration === 'short') enhancedQuery += " #Shorts";
+      else if (duration === 'medium' || duration === 'long') enhancedQuery += " -Shorts";
+    }
+
+    let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(enhancedQuery)}&regionCode=KR`;
     
     if (days) {
       const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
       url += `&publishedAfter=${publishedAfter}`;
     }
 
+    // 유튜브 API 특성상 videoDuration은 type=video와 함께 사용해야 함
     if (type === 'video' && duration !== 'any') {
       url += `&videoDuration=${duration}`;
     }
@@ -82,7 +90,7 @@ export const youtubeApi = {
     return videoData.items || [];
   },
 
-  // 성공 영상 검색 (영상 길이 필터 추가)
+  // 성공 영상 검색 (영상 길이 필터 최적화)
   getSuccessVideos: async (
     category: string = '', 
     maxResults: number = 20, 
@@ -90,7 +98,11 @@ export const youtubeApi = {
     duration: 'any' | 'short' | 'medium' | 'long' = 'any'
   ): Promise<any[]> => {
     const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    const query = category ? `${category} 인기 영상` : "인기 급상승";
+    
+    // 쿼리 보정: 필터링 결과가 0건이 나오는 것을 방지하기 위해 검색어 최적화
+    let query = category ? `${category} 인기 영상` : "인기 급상승";
+    if (duration === 'short') query += " #Shorts";
+    else if (duration === 'medium' || duration === 'long') query += " -Shorts";
     
     let url = `${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR&publishedAfter=${publishedAfter}`;
     
@@ -102,7 +114,11 @@ export const youtubeApi = {
     const data = await res.json();
     
     const videoIds = data.items?.map((v: any) => v.id.videoId).join(',') || '';
-    if (!videoIds) return [];
+    if (!videoIds) {
+      // 만약 duration 필터 때문에 결과가 0건이면, 필터를 살짝 완화해서 다시 시도하거나 
+      // 현재는 빈 배열을 반환하여 사용자에게 알림 (안전한 처리를 위해)
+      return [];
+    }
 
     const videoRes = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
     const videoData = await videoRes.json();
