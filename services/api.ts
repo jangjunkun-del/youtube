@@ -6,17 +6,26 @@ const API_BASE = '/api';
 export const youtubeApi = {
   // 공통 검색 엔진: 타입과 정렬 순서를 지정 가능하게 변경
   search: async (keyword: string, type: 'channel' | 'video' = 'channel', order: string = 'relevance', maxResults: number = 20): Promise<any[]> => {
-    // 쿼리가 없을 경우 한국의 인기 채널들을 가져오기 위한 기본 검색어 설정
-    const query = keyword || (type === 'channel' ? "한국 채널" : "한국 인기 영상");
-    
     // YouTube API의 maxResults 한계는 50입니다.
     const safeMaxResults = Math.min(maxResults, 50);
     
-    // 한국어 결과(relevanceLanguage=ko)와 한국 지역(regionCode=KR)을 명시적으로 추가
-    // q 파라미터가 검색 결과의 양을 결정하므로 인코딩에 유의
-    const searchRes = await fetch(
-      `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${safeMaxResults}&q=${encodeURIComponent(query)}&regionCode=KR&relevanceLanguage=ko`
-    );
+    // 키워드가 없을 경우(전체 랭킹), 공백 하나(" ")를 쿼리로 사용하면 
+    // 특정 단어에 치우치지 않고 해당 지역(KR)의 인기 있는 전체 채널/영상을 가져올 수 있습니다.
+    const query = keyword && keyword.trim() !== "" ? keyword.trim() : " ";
+    
+    // URLSearchParams를 사용하여 안전하게 쿼리 스트링 생성
+    const params = new URLSearchParams({
+      path: 'search',
+      part: 'snippet',
+      type: type,
+      order: order,
+      maxResults: safeMaxResults.toString(),
+      q: query,
+      regionCode: 'KR',
+      relevanceLanguage: 'ko'
+    });
+
+    const searchRes = await fetch(`${API_BASE}/proxy?${params.toString()}`);
     const searchData = await searchRes.json();
     
     if (!searchData.items || !Array.isArray(searchData.items) || searchData.items.length === 0) {
@@ -24,7 +33,7 @@ export const youtubeApi = {
       return [];
     }
 
-    // 채널 또는 영상 ID 추출 (id 객체 구조가 다를 수 있으므로 안전하게 필터링)
+    // 채널 또는 영상 ID 추출
     if (type === 'channel') {
       const ids = searchData.items
         .map((item: any) => item.id?.channelId)
@@ -48,7 +57,6 @@ export const youtubeApi = {
     if (!ids) return [];
     const res = await fetch(`${API_BASE}/proxy?path=channels&part=snippet,statistics,contentDetails,brandingSettings&id=${ids}`);
     const data = await res.json();
-    // 데이터가 존재할 경우만 반환
     return data.items || [];
   },
 
@@ -68,7 +76,6 @@ export const youtubeApi = {
     return youtubeApi.getVideosByIds(videoIds);
   },
 
-  // 호환성을 위해 유지하되 내부적으로 search 호출
   searchChannels: async (keyword: string, maxResults: number = 20): Promise<YouTubeChannel[]> => {
     return youtubeApi.search(keyword, 'channel', 'relevance', maxResults);
   }
