@@ -1,14 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
-import { Trophy, TrendingUp, Loader2, Sparkles, HelpCircle } from 'lucide-react';
+import { Trophy, TrendingUp, Loader2, Sparkles, HelpCircle, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const RankingPage: React.FC = () => {
-  const { data: videos, isLoading } = useQuery({
-    queryKey: ['efficiencyRanking'],
-    queryFn: () => youtubeApi.getSuccessVideos(''),
+  const [pageSize, setPageSize] = useState(20);
+
+  const { data: videos, isLoading, isFetching } = useQuery({
+    queryKey: ['efficiencyRanking', pageSize],
+    queryFn: () => youtubeApi.getSuccessVideos('', pageSize),
   });
 
   const formatNumber = (num: string | number) => {
@@ -46,57 +48,76 @@ const RankingPage: React.FC = () => {
           <p className="text-slate-500 font-black tracking-widest uppercase">실시간 주간 성능 데이터 분석 중...</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-[40px] border dark:border-white/5 shadow-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-white/5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] border-b dark:border-white/5">
-                  <th className="px-10 py-6">Rank</th>
-                  <th className="px-10 py-6">Channel & Video (Weekly)</th>
-                  <th className="px-10 py-6 text-right">Views</th>
-                  <th className="px-10 py-6 text-right">Performance Index</th>
-                  <th className="px-10 py-6"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y dark:divide-white/5">
-                {videos?.map((video, idx) => {
-                  const perf = (1200 - idx * 18 + Math.random() * 40).toFixed(1);
-                  return (
-                    <tr key={video.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
-                      <td className="px-10 py-8">
-                        <span className={`text-2xl font-black ${idx < 3 ? 'text-red-600' : 'text-slate-300 dark:text-slate-700'}`}>
-                          {(idx + 1).toString().padStart(2, '0')}
-                        </span>
-                      </td>
-                      <td className="px-10 py-8">
-                        <Link to={`/video/${video.id}`} className="flex items-center gap-6">
-                          <img src={video.snippet.thumbnails.default.url} className="w-16 h-10 rounded-lg object-cover shadow-lg group-hover:scale-110 transition-transform" />
-                          <div className="space-y-1">
-                            <p className="font-bold text-sm line-clamp-1 group-hover:text-red-600 transition-colors">{video.snippet.title}</p>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{video.snippet.channelTitle}</p>
+        <div className="space-y-10">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-[40px] border dark:border-white/5 shadow-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-white/5 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] border-b dark:border-white/5">
+                    <th className="px-10 py-6">Rank</th>
+                    <th className="px-10 py-6">Channel & Video (Weekly)</th>
+                    <th className="px-10 py-6 text-right">Views</th>
+                    <th className="px-10 py-6 text-right">Performance Index</th>
+                    <th className="px-10 py-6"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y dark:divide-white/5">
+                  {videos?.map((video, idx) => {
+                    const perf = (1200 - idx * 18 + Math.random() * 40).toFixed(1);
+                    return (
+                      <tr key={video.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
+                        <td className="px-10 py-8">
+                          <span className={`text-2xl font-black ${idx < 3 ? 'text-red-600' : 'text-slate-300 dark:text-slate-700'}`}>
+                            {(idx + 1).toString().padStart(2, '0')}
+                          </span>
+                        </td>
+                        <td className="px-10 py-8">
+                          <Link to={`/video/${video.id}`} className="flex items-center gap-6">
+                            <img src={video.snippet.thumbnails.default.url} className="w-16 h-10 rounded-lg object-cover shadow-lg group-hover:scale-110 transition-transform" />
+                            <div className="space-y-1">
+                              <p className="font-bold text-sm line-clamp-1 group-hover:text-red-600 transition-colors">{video.snippet.title}</p>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{video.snippet.channelTitle}</p>
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="px-10 py-8 text-right font-black">
+                          {formatNumber(video.statistics.viewCount)}
+                        </td>
+                        <td className="px-10 py-8 text-right">
+                          <div className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-600/10 text-red-600 px-4 py-2 rounded-2xl border border-red-100 dark:border-red-900/30">
+                            <TrendingUp size={14} />
+                            <span className="text-sm font-black">{perf}%</span>
                           </div>
-                        </Link>
-                      </td>
-                      <td className="px-10 py-8 text-right font-black">
-                        {formatNumber(video.statistics.viewCount)}
-                      </td>
-                      <td className="px-10 py-8 text-right">
-                        <div className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-600/10 text-red-600 px-4 py-2 rounded-2xl border border-red-100 dark:border-red-900/30">
-                          <TrendingUp size={14} />
-                          <span className="text-sm font-black">{perf}%</span>
-                        </div>
-                      </td>
-                      <td className="px-10 py-8 text-right">
-                        <Link to={`/video/${video.id}`} className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-red-600 hover:text-white transition-all inline-flex">
-                          <Sparkles size={18} />
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-10 py-8 text-right">
+                          <Link to={`/video/${video.id}`} className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-red-600 hover:text-white transition-all inline-flex">
+                            <Sparkles size={18} />
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          {videos && videos.length >= pageSize && (
+            <div className="flex justify-center">
+              <button 
+                onClick={() => setPageSize(prev => prev + 20)}
+                disabled={isFetching}
+                className="group flex items-center gap-3 bg-white dark:bg-[#1a1a1a] border dark:border-white/5 px-10 py-4 rounded-2xl shadow-sm hover:shadow-xl transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isFetching ? (
+                  <Loader2 className="animate-spin text-red-600" size={20} />
+                ) : (
+                  <ChevronDown className="text-red-600 group-hover:translate-y-1 transition-transform" size={20} />
+                )}
+                <span className="font-black text-sm uppercase tracking-widest">다음 순위 계속 보기</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

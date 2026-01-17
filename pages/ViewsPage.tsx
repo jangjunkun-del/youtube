@@ -10,21 +10,24 @@ import {
   Clock, 
   Eye, 
   Zap,
-  Play
+  Play,
+  ChevronDown
 } from 'lucide-react';
 
 const ViewsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryParam = searchParams.get('q') || '';
   const [input, setInput] = useState(queryParam);
+  const [pageSize, setPageSize] = useState(24);
 
-  const { data: videos, isLoading, isError } = useQuery({
-    queryKey: ['viewsAnalysis', queryParam],
-    queryFn: () => youtubeApi.search(queryParam || '인기 급상승', 'video', 'viewCount', 24),
+  const { data: videos, isLoading, isError, isFetching } = useQuery({
+    queryKey: ['viewsAnalysis', queryParam, pageSize],
+    queryFn: () => youtubeApi.search(queryParam || '인기 급상승', 'video', 'viewCount', pageSize),
   });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setPageSize(24);
     if (input.trim()) setSearchParams({ q: input.trim() });
   };
 
@@ -134,6 +137,23 @@ const ViewsPage: React.FC = () => {
                 );
             })}
           </div>
+
+          {videos && videos.length >= pageSize && (
+            <div className="pt-10 flex justify-center">
+              <button 
+                onClick={() => setPageSize(prev => prev + 24)}
+                disabled={isFetching}
+                className="group flex items-center gap-3 bg-white dark:bg-[#1a1a1a] border dark:border-white/5 px-10 py-4 rounded-2xl shadow-sm hover:shadow-xl transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isFetching ? (
+                  <Loader2 className="animate-spin text-red-600" size={20} />
+                ) : (
+                  <ChevronDown className="text-red-600 group-hover:translate-y-1 transition-transform" size={20} />
+                )}
+                <span className="font-black text-sm uppercase tracking-widest">성장 속도 랭킹 더 보기</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 

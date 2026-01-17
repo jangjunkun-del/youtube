@@ -75,9 +75,9 @@ export const youtubeApi = {
   },
 
   // 성공 영상 검색 (성능 지수 기준)
-  getSuccessVideos: async (category: string = ''): Promise<any[]> => {
+  getSuccessVideos: async (category: string = '', maxResults: number = 20): Promise<any[]> => {
     const query = category ? `${category} 인기 영상` : "인기 급상승";
-    const res = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=20&q=${encodeURIComponent(query)}&regionCode=KR`);
+    const res = await fetch(`${API_BASE}/proxy?path=search&part=snippet&type=video&order=viewCount&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=KR`);
     const data = await res.json();
     
     const videoIds = data.items?.map((v: any) => v.id.videoId).join(',') || '';
