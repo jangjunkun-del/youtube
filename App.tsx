@@ -153,7 +153,7 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="bg-slate-50 dark:bg-black/40 border-t dark:border-white/5 py-16 px-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="col-span-1 md:col-span-2 space-y-6">
             <Link to="/" className="flex items-center gap-2">
               <div className="bg-red-600 p-1.5 rounded-lg"><Play className="text-white fill-current" size={18} /></div>
@@ -167,6 +167,7 @@ const App: React.FC = () => {
                 <span key={tag} className="text-[11px] font-bold text-slate-400 border dark:border-white/10 px-2 py-1 rounded">#{tag}</span>
               ))}
             </div>
+            <p className="pt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">© 2024 유튜브분석툴. All rights reserved.</p>
           </div>
           <div>
             <h4 className="text-sm font-black mb-6 uppercase tracking-widest text-slate-400">Quick Links</h4>
@@ -179,16 +180,6 @@ const App: React.FC = () => {
                 </li>
               ))}
             </ul>
-          </div>
-          <div>
-            <h4 className="text-sm font-black mb-6 uppercase tracking-widest text-slate-400">Company</h4>
-            <p className="text-xs text-slate-500 leading-6">
-              (주)유튜브분석툴 | 대표: 데이터왕 <br />
-              사업자등록번호: 123-45-67890 <br />
-              통신판매업: 제2024-서울강남-0000호 <br />
-              이메일: hello@tubetool.kr
-            </p>
-            <p className="mt-8 text-[10px] font-black text-slate-400">© 2024 유튜브분석툴. All rights reserved.</p>
           </div>
         </div>
       </footer>
