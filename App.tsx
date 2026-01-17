@@ -27,6 +27,7 @@ import ThumbnailPage from './pages/ThumbnailPage.tsx';
 import RankingPage from './pages/RankingPage.tsx';
 import SuccessVideosPage from './pages/SuccessVideosPage.tsx';
 import GuidePage from './pages/GuidePage.tsx';
+import VideoDetailPage from './pages/VideoDetailPage.tsx';
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -154,6 +155,7 @@ const App: React.FC = () => {
           <Route path="/ranking" element={<RankingPage />} />
           <Route path="/success-videos" element={<SuccessVideosPage />} />
           <Route path="/guide" element={<GuidePage />} />
+          <Route path="/video/:id" element={<VideoDetailPage />} />
         </Routes>
       </main>
 

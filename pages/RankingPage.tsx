@@ -69,7 +69,7 @@ const RankingPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-10 py-8">
-                        <Link to={`/views?q=${encodeURIComponent(video.snippet.title)}`} className="flex items-center gap-6">
+                        <Link to={`/video/${video.id}`} className="flex items-center gap-6">
                           <img src={video.snippet.thumbnails.default.url} className="w-16 h-10 rounded-lg object-cover shadow-lg group-hover:scale-110 transition-transform" />
                           <div className="space-y-1">
                             <p className="font-bold text-sm line-clamp-1 group-hover:text-red-600 transition-colors">{video.snippet.title}</p>
@@ -87,7 +87,7 @@ const RankingPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-10 py-8 text-right">
-                        <Link to={`/views?q=${encodeURIComponent(video.snippet.title)}`} className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-red-600 hover:text-white transition-all inline-flex">
+                        <Link to={`/video/${video.id}`} className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-red-600 hover:text-white transition-all inline-flex">
                           <Sparkles size={18} />
                         </Link>
                       </td>

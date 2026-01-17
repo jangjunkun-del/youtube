@@ -4,6 +4,13 @@ import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 const API_BASE = '/api';
 
 export const youtubeApi = {
+  // 특정 영상 상세 정보 가져오기
+  getVideoDetail: async (videoId: string): Promise<YouTubeVideo | null> => {
+    const res = await fetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoId}`);
+    const data = await res.json();
+    return data.items?.[0] || null;
+  },
+
   // 채널 상세 정보 가져오기 (ID 또는 핸들)
   getChannelDetail: async (identifier: string): Promise<YouTubeChannel | null> => {
     // identifier could be ID or Handle

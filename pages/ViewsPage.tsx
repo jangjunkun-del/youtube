@@ -91,7 +91,7 @@ const ViewsPage: React.FC = () => {
                 return (
                   <Link 
                     key={video.id} 
-                    to={`/views?q=${encodeURIComponent(video.snippet.title)}`}
+                    to={`/video/${video.id}`}
                     className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 group hover:shadow-2xl transition-all flex flex-col"
                   >
                     <div className="relative aspect-video overflow-hidden">

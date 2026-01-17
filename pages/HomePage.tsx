@@ -183,7 +183,7 @@ const FeatureCard = ({ icon: Icon, title, desc, color, to }: any) => (
 const VideoCard = ({ rank, videoId, title, channel, views, ratio, thumbnail }: any) => {
   return (
     <Link 
-      to={`/views?q=${encodeURIComponent(title)}`}
+      to={`/video/${videoId}`}
       className="bg-white dark:bg-[#1a1a1a] rounded-3xl overflow-hidden border dark:border-white/5 shadow-sm group hover:shadow-xl transition-all block"
     >
       <div className="relative aspect-video">

@@ -148,7 +148,7 @@ const SuccessVideosPage: React.FC = () => {
                   </div>
 
                   <Link 
-                    to={`/views?q=${encodeURIComponent(video.snippet.title)}`}
+                    to={`/video/${video.id}`}
                     className="w-full py-3 bg-slate-50 dark:bg-white/5 hover:bg-slate-900 dark:hover:bg-red-600 hover:text-white rounded-2xl text-[11px] font-black text-slate-600 dark:text-slate-400 transition-all text-center uppercase tracking-widest"
                   >
                     영상 전략 분석하기
