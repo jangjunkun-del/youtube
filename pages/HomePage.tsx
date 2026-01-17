@@ -21,7 +21,7 @@ const HomePage: React.FC = () => {
   const [keyword, setKeyword] = useState('');
   const navigate = useNavigate();
 
-  // 실제 데이터 연동: 알고리즘 성공 영상 4개 가져오기
+  // 실제 데이터 연동: 알고리즘 성공 영상 가져오기
   const { data: successVideos, isLoading } = useQuery({
     queryKey: ['homeSuccessVideos'],
     queryFn: () => youtubeApi.getSuccessVideos(''),
@@ -131,7 +131,7 @@ const HomePage: React.FC = () => {
               <div key={i} className="bg-slate-100 dark:bg-white/5 aspect-video rounded-3xl animate-pulse" />
             ))
           ) : (
-            successVideos?.slice(0, 4).map((video: any, idx: number) => (
+            successVideos?.items?.slice(0, 4).map((video: any, idx: number) => (
               <VideoCard 
                 key={video.id}
                 rank={idx + 1}
