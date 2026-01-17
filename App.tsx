@@ -71,11 +71,14 @@ const App: React.FC = () => {
           >
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-          <Link to="/" className="flex items-center gap-1.5 group">
-            <div className="bg-red-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="bg-red-600 p-1.5 rounded-lg group-hover:scale-110 transition-transform shadow-lg shadow-red-600/20">
               <Play className="text-white fill-current" size={18} />
             </div>
-            <h1 className="text-xl font-black tracking-tighter">유튜브분석툴</h1>
+            <div className="flex flex-col -space-y-1">
+              <h1 className="text-xl font-black tracking-tighter">알고픽</h1>
+              <span className="text-[9px] font-black text-red-600 dark:text-red-500 tracking-tighter">(유튜브분석툴)</span>
+            </div>
           </Link>
         </div>
 
@@ -86,7 +89,7 @@ const App: React.FC = () => {
               to={item.to}
               className={`px-4 py-2 text-sm font-bold rounded-full transition-all ${
                 location.pathname === item.to 
-                ? 'bg-red-600 text-white' 
+                ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' 
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
               }`}
             >
@@ -115,7 +118,10 @@ const App: React.FC = () => {
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <div className="bg-red-600 p-1.5 rounded-lg"><Play className="text-white fill-current" size={18} /></div>
-              <span className="text-xl font-black">유튜브분석툴</span>
+              <div className="flex flex-col -space-y-1">
+                <span className="text-xl font-black">알고픽</span>
+                <span className="text-[8px] font-black text-red-600 tracking-tighter">(유튜브분석툴)</span>
+              </div>
             </Link>
             <button onClick={() => setIsSidebarOpen(false)}><X size={24} /></button>
           </div>
@@ -157,20 +163,23 @@ const App: React.FC = () => {
           <div className="col-span-1 md:col-span-2 space-y-6">
             <Link to="/" className="flex items-center gap-2">
               <div className="bg-red-600 p-1.5 rounded-lg"><Play className="text-white fill-current" size={18} /></div>
-              <span className="text-2xl font-black">유튜브분석툴</span>
+              <div className="flex flex-col -space-y-1">
+                <span className="text-2xl font-black">알고픽</span>
+                <span className="text-xs font-black text-red-600 tracking-tighter">(유튜브분석툴)</span>
+              </div>
             </Link>
             <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-md">
-              유튜브분석툴은 구독자 대비 조회수가 잘 나오는 영상을 분석하여 썸네일 성과와 유튜브 트렌드를 알려주는 전문가용 유튜브 데이터 분석 플랫폼입니다.
+              알고픽(유튜브분석툴)은 유튜브 알고리즘 픽 데이터를 기반으로 성과 지표를 분석하고 썸네일 전략을 제시하는 국내 최고의 데이터 큐레이션 플랫폼입니다.
             </p>
             <div className="flex gap-4">
-              {['유튜브조회수분석', '유튜브썸네일분석', '유튜브성공영상'].map(tag => (
+              {['유튜브분석툴', '유튜브랭킹', '유튜브조회수분석', '알고픽'].map(tag => (
                 <span key={tag} className="text-[11px] font-bold text-slate-400 border dark:border-white/10 px-2 py-1 rounded">#{tag}</span>
               ))}
             </div>
-            <p className="pt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">© 2024 유튜브분석툴. All rights reserved.</p>
+            <p className="pt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">© 2024 알고픽 (유튜브분석툴). All rights reserved.</p>
           </div>
           <div>
-            <h4 className="text-sm font-black mb-6 uppercase tracking-widest text-slate-400">Quick Links</h4>
+            <h4 className="text-sm font-black mb-6 uppercase tracking-widest text-slate-400">Services</h4>
             <ul className="space-y-4">
               {navItems.map(item => (
                 <li key={item.to}>

@@ -1,5 +1,5 @@
 {
-  "name": "YouRank - YouTube Analytics & Ranking",
-  "description": "YouTube 채널 순위와 성장 잠재력을 실시간 데이터로 분석하는 대시보드입니다. Cloudflare Functions를 통해 데이터를 안전하게 관리합니다.",
+  "name": "알고픽 (유튜브분석툴) - 유튜브 랭킹 & 알고리즘 비밀 분석",
+  "description": "유튜브 알고리즘이 선택한 영상들의 진짜 비밀을 분석하는 국내 최고의 유튜브분석툴입니다. 실시간 유튜브 랭킹과 썸네일 전략을 확인하세요.",
   "requestFramePermissions": []
 }
