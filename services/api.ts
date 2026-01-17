@@ -4,16 +4,24 @@ import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 const API_BASE = '/api';
 
 export const youtubeApi = {
-  // 공통 fetch 래퍼: 에러 핸들링 포함
+  // 공통 fetch 래퍼: 할당량 초과 감지 로직 추가
   safeFetch: async (url: string) => {
     try {
       const res = await fetch(url);
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        console.warn(`YouTube API error: ${res.status}`);
+        // 할당량 소진 여부 정밀 체크
+        const errorReason = data.error?.errors?.[0]?.reason;
+        if (res.status === 403 && errorReason === 'quotaExceeded') {
+          throw new Error('QUOTA_LIMIT_REACHED');
+        }
+        console.warn(`YouTube API error: ${res.status}`, data.error?.message);
         return { items: [] };
       }
-      return await res.json();
-    } catch (e) {
+      return data;
+    } catch (e: any) {
+      if (e.message === 'QUOTA_LIMIT_REACHED') throw e;
       console.error("Fetch failed:", e);
       return { items: [] };
     }
@@ -25,7 +33,7 @@ export const youtubeApi = {
     return data.items?.[0] || null;
   },
 
-  // 채널 상세 정보 가져오기 (ID 또는 핸들)
+  // 채널 상세 정보 가져오기
   getChannelDetail: async (identifier: string): Promise<YouTubeChannel | null> => {
     let channelId = identifier;
     if (identifier.startsWith('@') || !identifier.startsWith('UC')) {
@@ -44,7 +52,7 @@ export const youtubeApi = {
     return data.items || [];
   },
 
-  // 통합 검색 (최적화된 Fallback 로직)
+  // 통합 검색
   search: async (
     query: string, 
     type: 'channel' | 'video', 
@@ -54,7 +62,6 @@ export const youtubeApi = {
     duration: 'any' | 'short' | 'medium' | 'long' = 'any'
   ): Promise<any[]> => {
     const fetchWithRetry = async (useDateFilter: boolean, useDurationFilter: boolean): Promise<any[]> => {
-      // 검색어가 비어있을 경우 기본값 설정
       let cleanQuery = query.trim() || "인기";
       let enhancedQuery = cleanQuery;
       
@@ -65,13 +72,11 @@ export const youtubeApi = {
 
       let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(enhancedQuery)}&regionCode=KR`;
       
-      // 날짜 필터 (가장 먼저 완화할 대상)
       if (days && useDateFilter) {
         const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
         url += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
       }
 
-      // 길이 필터
       if (type === 'video' && duration !== 'any' && useDurationFilter) {
         url += `&videoDuration=${duration}`;
       }
@@ -79,10 +84,9 @@ export const youtubeApi = {
       const searchData = await youtubeApi.safeFetch(url);
       const items = searchData.items || [];
 
-      // 결과가 없을 경우 조건 완화하여 재시도
       if (items.length === 0) {
-        if (useDateFilter) return fetchWithRetry(false, useDurationFilter); // 1단계: 날짜 필터 제거
-        if (useDurationFilter) return fetchWithRetry(false, false); // 2단계: 길이 필터 제거
+        if (useDateFilter) return fetchWithRetry(false, useDurationFilter);
+        if (useDurationFilter) return fetchWithRetry(false, false);
       }
 
       if (type === 'video') {
@@ -111,19 +115,17 @@ export const youtubeApi = {
     return videoData.items || [];
   },
 
-  // 성공 영상 검색 (성능 최적화 버전)
+  // 성공 영상 검색
   getSuccessVideos: async (
     category: string = '', 
     maxResults: number = 20, 
     days: number = 7,
     duration: 'any' | 'short' | 'medium' | 'long' = 'any'
   ): Promise<any[]> => {
-    // search 함수를 활용하여 Fallback 로직 일원화
     const query = category ? `${category} 인기 영상` : "인기 급상승";
     return youtubeApi.search(query, 'video', 'viewCount', maxResults, days, duration);
   },
 
-  // 구독자 대비 조회수 계산
   calculatePerformance: (views: number, subscribers: number) => {
     if (subscribers === 0) return 0;
     return (views / subscribers) * 100;

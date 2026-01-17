@@ -12,7 +12,9 @@ import {
   Filter,
   Sparkles,
   Info,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -43,10 +45,13 @@ const SuccessVideosPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   const [videoType, setVideoType] = useState<'any' | 'medium' | 'short'>('any');
 
-  const { data: videos, isLoading, isError, isFetching } = useQuery({
+  const { data: videos, isLoading, isError, error, isFetching } = useQuery({
     queryKey: ['successVideos', selectedCategory, pageSize, videoType],
     queryFn: () => youtubeApi.getSuccessVideos(selectedCategory, pageSize, 30, videoType),
+    retry: false, // 할당량 초과는 재시도해도 실패하므로 즉시 에러 처리
   });
+
+  const isQuotaError = (error as any)?.message === 'QUOTA_LIMIT_REACHED';
 
   const handleCategoryChange = (val: string) => {
     setSelectedCategory(val);
@@ -79,7 +84,6 @@ const SuccessVideosPage: React.FC = () => {
             <p className="text-slate-500 font-bold">최근 한 달간 알고리즘의 선택을 받은 카테고리별 성공 전략 영상을 추출합니다.</p>
           </div>
 
-          {/* Video Type Filter */}
           <div className="flex bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border dark:border-white/10 shrink-0 self-end md:self-auto">
             <button 
               onClick={() => setVideoType('any')}
@@ -102,7 +106,6 @@ const SuccessVideosPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Category Filter */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 custom-scrollbar whitespace-nowrap scroll-smooth">
           <div className="sticky left-0 z-10 p-2.5 rounded-xl bg-slate-50 dark:bg-white/5 mr-2 shadow-sm">
             <Filter size={18} className="text-slate-400" />
@@ -128,8 +131,23 @@ const SuccessVideosPage: React.FC = () => {
           <Loader2 className="animate-spin text-red-600" size={48} />
           <p className="text-slate-400 font-black tracking-widest uppercase animate-pulse text-sm">최근 데이터 수집 및 분류 중...</p>
         </div>
+      ) : isQuotaError ? (
+        <div className="py-20 px-10 bg-red-50 dark:bg-red-900/10 border-2 border-dashed border-red-200 dark:border-red-800 rounded-[40px] text-center space-y-6">
+          <AlertTriangle size={64} className="mx-auto text-red-600" />
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black text-red-600">유튜브 데이터 할당량 소진</h3>
+            <p className="text-slate-600 dark:text-slate-400 font-bold max-w-lg mx-auto leading-relaxed">
+              오늘 사용할 수 있는 유튜브 API 무료 호출량이 모두 소진되었습니다. <br />
+              유튜브 정책에 따라 <b>한국시간 오후 5시(태평양 표준시 자정)</b>에 초기화됩니다.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-red-600 font-black bg-white dark:bg-black/20 w-fit mx-auto px-6 py-3 rounded-2xl shadow-sm">
+            <Clock size={18} />
+            초기화 시각까지 대기 중...
+          </div>
+        </div>
       ) : isError ? (
-        <div className="py-20 text-center text-slate-400 font-bold">데이터를 불러오는 데 실패했습니다.</div>
+        <div className="py-20 text-center text-slate-400 font-bold">데이터를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.</div>
       ) : (
         <div className="space-y-16">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -211,7 +229,7 @@ const SuccessVideosPage: React.FC = () => {
         </div>
       )}
 
-      {!isLoading && videos?.length === 0 && (
+      {!isLoading && videos?.length === 0 && !isQuotaError && (
         <div className="py-32 text-center space-y-4 opacity-30">
           <Zap size={80} className="mx-auto" />
           <p className="text-xl font-black uppercase tracking-widest">해당 필터의 최근 성공 사례를 찾을 수 없습니다</p>
