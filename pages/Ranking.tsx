@@ -92,6 +92,23 @@ const RANKING_CONFIGS: Record<RankingType, Config> = {
   }
 };
 
+const CATEGORIES = [
+  { label: '🌐 전체', value: '' },
+  { label: '💻 IT/테크', value: 'IT 테크 전자 기기' },
+  { label: '🎮 게임', value: '게임 실황 게이머' },
+  { label: '🍽️ 먹방/요리', value: '먹방 요리 쿡방' },
+  { label: '📈 경제/재테크', value: '주식 경제 재테크 부동산' },
+  { label: '⚖️ 정치', value: '정치 시사' },
+  { label: '📺 뉴스/시사', value: '뉴스 보도 언론' },
+  { label: '🎶 음악', value: '음악 뮤직 뮤지션' },
+  { label: '🎤 K-POP', value: 'K-POP 아이돌' },
+  { label: '✈️ 여행', value: '여행 브이로그' },
+  { label: '👗 뷰티/패션', value: '뷰티 메이크업 패션 스타일' },
+  { label: '⚽ 스포츠', value: '스포츠 야구 축구 운동' },
+  { label: '👶 키즈', value: '키즈 어린이 토이' },
+  { label: '🐾 반려동물', value: '강아지 고양이 반려동물' },
+];
+
 const formatCount = (num: string | number) => {
   const n = typeof num === 'string' ? parseInt(num, 10) : num;
   if (isNaN(n)) return '0';
@@ -186,36 +203,62 @@ const Ranking: React.FC = () => {
     }
   };
 
+  const handleCategoryClick = (val: string) => {
+    setSearchParams({ type: typeParam, q: val, size: pageSize.toString() });
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className={`p-5 rounded-[28px] bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-xl ${config.color}`}>
-            <config.icon size={40} strokeWidth={2.5} />
+      <header className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className={`p-5 rounded-[28px] bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-xl ${config.color}`}>
+              <config.icon size={40} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                {config.title}
+              </h1>
+              <p className="text-slate-500 text-sm mt-1.5 font-medium">
+                {config.description}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-              {config.title}
-            </h1>
-            <p className="text-slate-500 text-sm mt-1.5 font-medium">
-              {config.description}
-            </p>
-          </div>
+          
+          <form onSubmit={handleSearch} className="relative w-full md:w-96 group">
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="w-full pl-14 pr-24 py-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-red-500 transition-all shadow-lg dark:text-white text-base"
+              placeholder={`${config.title} 내 검색...`}
+            />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-900 dark:bg-red-600 text-white px-5 py-2 rounded-xl text-xs font-black">
+              검색
+            </button>
+          </form>
         </div>
-        
-        <form onSubmit={handleSearch} className="relative w-full md:w-96 group">
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            className="w-full pl-14 pr-24 py-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-red-500 transition-all shadow-lg dark:text-white text-base"
-            placeholder={`${config.title} 내 검색...`}
-          />
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-900 dark:bg-red-600 text-white px-5 py-2 rounded-xl text-xs font-black">
-            검색
-          </button>
-        </form>
+
+        {config.apiType === 'channel' && (
+          <div className="bg-white dark:bg-slate-900 p-2.5 rounded-[24px] border dark:border-slate-800 flex items-center gap-1.5 shadow-sm overflow-x-auto custom-scrollbar whitespace-nowrap">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.label}
+                onClick={() => handleCategoryClick(cat.value)}
+                className={`
+                  px-5 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2 shrink-0
+                  ${currentQuery === cat.value 
+                    ? 'bg-slate-900 dark:bg-red-600 text-white shadow-lg' 
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border-2 border-transparent'
+                  }
+                `}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-[40px] shadow-2xl overflow-hidden">
