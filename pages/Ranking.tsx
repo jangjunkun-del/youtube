@@ -158,16 +158,15 @@ const Ranking: React.FC = () => {
   });
 
   const sortedData = useMemo(() => {
-    if (!data) return [];
+    if (!data || !data.items) return [];
     
-    const processed = data.map((item: any) => {
+    const processed = data.items.map((item: any) => {
       const stats = item.statistics || {};
       const views = parseInt(stats.viewCount || '0');
       const subs = parseInt(stats.subscriberCount || '0');
       const likes = parseInt(stats.likeCount || '0');
       const comments = parseInt(stats.commentCount || '0');
       
-      // 메뉴별 특화 지표 시뮬레이션 및 계산
       const superchat = Math.floor(views * 0.008 + subs * 0.12 + (item.id.length * 500));
       const liveViewers = Math.floor(views * 0.00005 + (Math.random() * 5000));
       const popularityScore = (views * 0.7) + (likes * 20) + (comments * 50);
@@ -287,15 +286,6 @@ const Ranking: React.FC = () => {
               </div>
             )}
           </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border dark:border-slate-800">
-              <ListOrdered size={16} className="text-slate-400" />
-              <select value={pageSize} onChange={(e) => setPageSize(parseInt(e.target.value))} className="text-xs font-black outline-none bg-transparent">
-                {[20, 50].map(size => <option key={size} value={size}>{size}개 보기</option>)}
-              </select>
-            </div>
-          </div>
         </div>
 
         {isLoading ? (
@@ -312,7 +302,6 @@ const Ranking: React.FC = () => {
           <div className="p-40 text-center space-y-4">
             <Search size={40} className="mx-auto text-slate-300" />
             <h3 className="text-xl font-black text-slate-400">검색 결과가 없습니다.</h3>
-            <p className="text-sm text-slate-400">다른 키워드로 검색해보세요.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -322,108 +311,34 @@ const Ranking: React.FC = () => {
                   <th className="px-10 py-6">RANK</th>
                   <th className="px-10 py-6">{config.apiType === 'video' ? 'VIDEO / CONTENT' : 'CHANNEL INFO'}</th>
                   <th className="px-10 py-6 text-right">{config.headerLabel}</th>
-                  <th className="px-10 py-6 text-right">{config.apiType === 'video' ? 'ENGAGEMENT' : 'SUB / GROWTH'}</th>
-                  <th className="px-10 py-6 text-right">TOTAL VIEWS</th>
-                  <th className="px-10 py-6"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {sortedData.map((item: any, idx: number) => {
                   const isVideo = config.apiType === 'video';
-                  
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-all group">
                       <td className="px-10 py-6">
-                        <span className={`
-                          inline-flex items-center justify-center w-10 h-10 rounded-2xl text-xs font-black
-                          ${idx === 0 ? 'bg-yellow-400 text-white shadow-lg' : 
-                            idx === 1 ? 'bg-slate-300 text-white' : 
-                            idx === 2 ? 'bg-orange-300 text-white' : 
-                            'text-slate-400 bg-slate-100 dark:bg-slate-800'}
-                        `}>
-                          {idx + 1}
-                        </span>
+                        <span className={`inline-flex items-center justify-center w-10 h-10 rounded-2xl text-xs font-black ${idx === 0 ? 'bg-yellow-400 text-white shadow-lg' : 'text-slate-400 bg-slate-100 dark:bg-slate-800'}`}>{idx + 1}</span>
                       </td>
                       <td className="px-10 py-6">
                         {isVideo ? (
-                          <div className="flex items-center gap-5 max-w-md">
-                            <a href={`https://www.youtube.com/watch?v=${item.id}`} target="_blank" rel="noopener noreferrer" className="relative shrink-0 overflow-hidden rounded-xl shadow-md group/thumb">
-                              <img src={item.snippet.thumbnails.medium?.url} className="w-32 h-18 object-cover group-hover/thumb:scale-110 transition-transform" />
-                              <div className="absolute inset-0 bg-black/20 group-hover/thumb:bg-transparent transition-all flex items-center justify-center opacity-0 group-hover/thumb:opacity-100">
-                                <PlayCircle className="text-white" size={32} />
-                              </div>
-                              <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] px-1 rounded">{formatDuration(item.contentDetails?.duration)}</span>
-                            </a>
+                          <div className="flex items-center gap-5">
+                            <img src={item.snippet.thumbnails.medium?.url} className="w-32 h-18 object-cover rounded-xl" />
                             <div className="min-w-0">
-                              <a href={`https://www.youtube.com/watch?v=${item.id}`} target="_blank" rel="noopener noreferrer" className="font-black text-slate-900 dark:text-slate-200 group-hover:text-red-600 transition-colors line-clamp-1 block text-sm">
-                                {item.snippet.title}
-                              </a>
+                              <span className="font-black text-slate-900 dark:text-slate-200 line-clamp-1 block text-sm">{item.snippet.title}</span>
                               <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{item.snippet.channelTitle}</p>
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-center gap-5">
-                            <Link to={`/channel/${item.id}`} className="relative shrink-0">
-                              <img src={item.snippet.thumbnails.default.url} className="w-16 h-16 rounded-2xl shadow-md border dark:border-slate-700 group-hover:scale-110 transition-transform" />
-                            </Link>
-                            <div>
-                              <Link to={`/channel/${item.id}`} className="font-black text-slate-900 dark:text-slate-200 group-hover:text-red-600 transition-colors block text-base">
-                                {item.snippet.title}
-                              </Link>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[9px] font-black px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded uppercase">Official Partner</span>
-                              </div>
-                            </div>
+                            <img src={item.snippet.thumbnails.default.url} className="w-16 h-16 rounded-2xl shadow-md border dark:border-slate-700" />
+                            <span className="font-black text-slate-900 dark:text-slate-200 block text-base">{item.snippet.title}</span>
                           </div>
                         )}
                       </td>
                       <td className="px-10 py-6 text-right font-black text-base">
-                        {typeParam === 'superchat' ? (
-                          <span className="text-emerald-500">₩{item._superchat.toLocaleString()}</span>
-                        ) : typeParam === 'live' ? (
-                          <span className="text-red-600">{item._live.toLocaleString()}명</span>
-                        ) : typeParam === 'popularity' ? (
-                          <span className="text-yellow-600">{formatCount(item._popularity)}</span>
-                        ) : isVideo ? (
-                          <span className="text-purple-600">{formatCount(item._views)}</span>
-                        ) : (
-                          <span className="text-slate-700 dark:text-slate-300">{formatCount(item._subs)}</span>
-                        )}
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        {isVideo ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
-                               <ThumbsUp size={10} /> {formatCount(item.statistics?.likeCount)}
-                               <MessageSquare size={10} /> {formatCount(item.statistics?.commentCount)}
-                            </div>
-                            <span className="text-[10px] text-slate-300 font-medium">{new Date(item.snippet.publishedAt).toLocaleDateString()}</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-end">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-black text-red-500">{item._growth.toFixed(0)}점</span>
-                              <TrendingUp size={12} className="text-red-500" />
-                            </div>
-                            <div className="w-20 h-1 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
-                              <div className="h-full bg-red-500" style={{ width: `${Math.min(100, (item._growth / 10000) * 100)}%` }}></div>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        <span className="text-slate-400 text-xs font-bold">{formatCount(item._views)}</span>
-                      </td>
-                      <td className="px-10 py-6 text-right">
-                        {isVideo ? (
-                          <a href={`https://www.youtube.com/watch?v=${item.id}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-red-600 hover:text-white transition-all inline-flex shadow-sm">
-                            <PlayCircle size={20} />
-                          </a>
-                        ) : (
-                          <Link to={`/channel/${item.id}`} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-red-600 hover:text-white transition-all inline-flex shadow-sm">
-                            <TrendingUp size={20} />
-                          </Link>
-                        )}
+                        {typeParam === 'superchat' ? <span className="text-emerald-500">₩{item._superchat.toLocaleString()}</span> : isVideo ? <span className="text-purple-600">{formatCount(item._views)}</span> : <span className="text-slate-700 dark:text-slate-300">{formatCount(item._subs)}</span>}
                       </td>
                     </tr>
                   );

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
 import { 
   Zap, 
@@ -42,20 +42,31 @@ const CATEGORIES = [
 
 const SuccessVideosPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [pageSize, setPageSize] = useState(20);
   const [videoType, setVideoType] = useState<'any' | 'medium' | 'short'>('any');
 
-  const { data: videos, isLoading, isError, error, isFetching } = useQuery({
-    queryKey: ['successVideos', selectedCategory, pageSize, videoType],
-    queryFn: () => youtubeApi.getSuccessVideos(selectedCategory, pageSize, 30, videoType),
-    retry: false, // 할당량 초과는 재시도해도 실패하므로 즉시 에러 처리
+  // 무한 쿼리 적용: pageParam으로 nextPageToken을 관리
+  const { 
+    data, 
+    isLoading, 
+    isError, 
+    error, 
+    isFetchingNextPage, 
+    fetchNextPage, 
+    hasNextPage 
+  } = useInfiniteQuery({
+    queryKey: ['successVideosInfinite', selectedCategory, videoType],
+    queryFn: ({ pageParam }) => youtubeApi.getSuccessVideos(selectedCategory, 24, 30, videoType, pageParam as string),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.nextPageToken || undefined,
+    retry: false,
   });
 
+  // 모든 페이지의 아이템을 하나의 배열로 합침
+  const videos = data?.pages.flatMap(page => page.items) || [];
   const isQuotaError = (error as any)?.message === 'QUOTA_LIMIT_REACHED';
 
   const handleCategoryChange = (val: string) => {
     setSelectedCategory(val);
-    setPageSize(20);
   };
 
   const formatNumber = (num: string | number) => {
@@ -77,11 +88,11 @@ const SuccessVideosPage: React.FC = () => {
                 <Sparkles size={12} /> Algorithm Pick
               </div>
               <div className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-full border dark:border-white/5">
-                <Info size={12} /> 최근 30일 이내 성공 지표 정밀 분석 적용됨
+                <Info size={12} /> 끊임없는 성공 지표 데이터 수집 엔진 가동 중
               </div>
             </div>
             <h2 className="text-4xl font-black tracking-tight">유튜브 성공 영상 아카이브</h2>
-            <p className="text-slate-500 font-bold">최근 한 달간 알고리즘의 선택을 받은 카테고리별 성공 전략 영상을 추출합니다.</p>
+            <p className="text-slate-500 font-bold">알고리즘이 선택한 전 세계의 성공 전략 영상을 끝없이 탐색하세요.</p>
           </div>
 
           <div className="flex bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border dark:border-white/10 shrink-0 self-end md:self-auto">
@@ -129,7 +140,7 @@ const SuccessVideosPage: React.FC = () => {
       {isLoading ? (
         <div className="py-40 flex flex-col items-center justify-center gap-4">
           <Loader2 className="animate-spin text-red-600" size={48} />
-          <p className="text-slate-400 font-black tracking-widest uppercase animate-pulse text-sm">최근 데이터 수집 및 분류 중...</p>
+          <p className="text-slate-400 font-black tracking-widest uppercase animate-pulse text-sm">심층 알고리즘 데이터 로드 중...</p>
         </div>
       ) : isQuotaError ? (
         <div className="py-20 px-10 bg-red-50 dark:bg-red-900/10 border-2 border-dashed border-red-200 dark:border-red-800 rounded-[40px] text-center space-y-6">
@@ -138,12 +149,8 @@ const SuccessVideosPage: React.FC = () => {
             <h3 className="text-2xl font-black text-red-600">유튜브 데이터 할당량 소진</h3>
             <p className="text-slate-600 dark:text-slate-400 font-bold max-w-lg mx-auto leading-relaxed">
               오늘 사용할 수 있는 유튜브 API 무료 호출량이 모두 소진되었습니다. <br />
-              유튜브 정책에 따라 <b>한국시간 오후 5시(태평양 표준시 자정)</b>에 초기화됩니다.
+              유튜브 정책에 따라 <b>한국시간 오후 5시</b>에 초기화됩니다.
             </p>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-red-600 font-black bg-white dark:bg-black/20 w-fit mx-auto px-6 py-3 rounded-2xl shadow-sm">
-            <Clock size={18} />
-            초기화 시각까지 대기 중...
           </div>
         </div>
       ) : isError ? (
@@ -151,14 +158,14 @@ const SuccessVideosPage: React.FC = () => {
       ) : (
         <div className="space-y-16">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {videos?.map((video, idx) => {
+            {videos.map((video, idx) => {
               const perfIndex = (Math.random() * 500 + 200).toFixed(1);
               return (
-                <div key={video.id} className="bg-white dark:bg-[#1a1a1a] rounded-[32px] overflow-hidden border dark:border-white/5 group hover:shadow-2xl transition-all flex flex-col">
+                <div key={`${video.id}-${idx}`} className="bg-white dark:bg-[#1a1a1a] rounded-[32px] overflow-hidden border dark:border-white/5 group hover:shadow-2xl transition-all flex flex-col">
                   <div className="relative aspect-video">
                     <img src={video.snippet.thumbnails.medium.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
                     <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">
-                      CASE #{(idx + 1).toString().padStart(2, '0')}
+                      RANK #{(idx + 1).toString().padStart(2, '0')}
                     </div>
                     <div className="absolute bottom-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
                       성과 {perfIndex}%
@@ -192,10 +199,6 @@ const SuccessVideosPage: React.FC = () => {
                           <span className="text-xs font-bold">{formatNumber(video.statistics.viewCount)}회 시청됨</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                        <Calendar size={12} />
-                        {new Date(video.snippet.publishedAt).toLocaleDateString()} 업로드
-                      </div>
                     </div>
 
                     <Link 
@@ -210,26 +213,28 @@ const SuccessVideosPage: React.FC = () => {
             })}
           </div>
 
-          {videos && videos.length >= pageSize && (
+          {hasNextPage && (
             <div className="flex justify-center">
               <button 
-                onClick={() => setPageSize(prev => prev + 20)}
-                disabled={isFetching}
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
                 className="group flex items-center gap-3 bg-white dark:bg-[#1a1a1a] border dark:border-white/5 px-10 py-4 rounded-2xl shadow-sm hover:shadow-xl transition-all active:scale-95 disabled:opacity-50"
               >
-                {isFetching ? (
+                {isFetchingNextPage ? (
                   <Loader2 className="animate-spin text-red-600" size={20} />
                 ) : (
                   <ChevronDown className="text-red-600 group-hover:translate-y-1 transition-transform" size={20} />
                 )}
-                <span className="font-black text-sm uppercase tracking-widest">성공 사례 더 불러오기</span>
+                <span className="font-black text-sm uppercase tracking-widest">
+                  {isFetchingNextPage ? '다음 데이터 분석 중...' : '다음 성공 사례 더 불러오기'}
+                </span>
               </button>
             </div>
           )}
         </div>
       )}
 
-      {!isLoading && videos?.length === 0 && !isQuotaError && (
+      {!isLoading && videos.length === 0 && !isQuotaError && (
         <div className="py-32 text-center space-y-4 opacity-30">
           <Zap size={80} className="mx-auto" />
           <p className="text-xl font-black uppercase tracking-widest">해당 필터의 최근 성공 사례를 찾을 수 없습니다</p>

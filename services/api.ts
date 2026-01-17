@@ -4,13 +4,12 @@ import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 const API_BASE = '/api';
 
 export const youtubeApi = {
-  // 공통 fetch 래퍼: 할당량 초과 감지 로직 강화
+  // 공통 fetch 래퍼: 응답 전체(nextPageToken 포함)를 반환하도록 수정
   safeFetch: async (url: string) => {
     try {
       const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
 
-      // 1. 응답 바디 내부에 직접적인 에러 정보가 있는지 먼저 확인 (프록시 특성 고려)
       const errorReason = data.error?.errors?.[0]?.reason;
       if (errorReason === 'quotaExceeded' || (res.status === 403 && errorReason === 'quotaExceeded')) {
         throw new Error('QUOTA_LIMIT_REACHED');
@@ -18,16 +17,14 @@ export const youtubeApi = {
 
       if (!res.ok) {
         console.warn(`YouTube API error: ${res.status}`, data.error?.message);
-        // 일반적인 에러의 경우 빈 배열을 반환하여 앱이 멈추지 않게 함
-        return { items: [] };
+        return { items: [], nextPageToken: null };
       }
       
       return data;
     } catch (e: any) {
-      // 할당량 에러는 UI에 표시하기 위해 상위로 던짐
       if (e.message === 'QUOTA_LIMIT_REACHED') throw e;
       console.error("Fetch failed:", e);
-      return { items: [] };
+      return { items: [], nextPageToken: null };
     }
   },
 
@@ -49,23 +46,17 @@ export const youtubeApi = {
     return data.items?.[0] || null;
   },
 
-  // 여러 채널 ID로 채널 정보 가져오기
-  getChannelsByIds: async (ids: string): Promise<YouTubeChannel[]> => {
-    if (!ids) return [];
-    const data = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=channels&part=snippet,statistics,contentDetails,brandingSettings&id=${ids}`);
-    return data.items || [];
-  },
-
-  // 통합 검색
+  // 통합 검색 (페이지네이션 지원)
   search: async (
     query: string, 
     type: 'channel' | 'video', 
     order: string = 'relevance', 
     maxResults: number = 20, 
     days?: number,
-    duration: 'any' | 'short' | 'medium' | 'long' = 'any'
-  ): Promise<any[]> => {
-    const fetchWithRetry = async (useDateFilter: boolean, useDurationFilter: boolean): Promise<any[]> => {
+    duration: 'any' | 'short' | 'medium' | 'long' = 'any',
+    pageToken?: string
+  ): Promise<{ items: any[], nextPageToken: string | null }> => {
+    const fetchWithRetry = async (useDateFilter: boolean, useDurationFilter: boolean): Promise<{ items: any[], nextPageToken: string | null }> => {
       let cleanQuery = query.trim() || "인기";
       let enhancedQuery = cleanQuery;
       
@@ -75,6 +66,8 @@ export const youtubeApi = {
       }
 
       let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(enhancedQuery)}&regionCode=KR`;
+      
+      if (pageToken) url += `&pageToken=${pageToken}`;
       
       if (days && useDateFilter) {
         const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -87,25 +80,34 @@ export const youtubeApi = {
 
       const searchData = await youtubeApi.safeFetch(url);
       const items = searchData.items || [];
+      const nextPageToken = searchData.nextPageToken || null;
 
-      if (items.length === 0) {
+      if (items.length === 0 && !pageToken) {
         if (useDateFilter) return fetchWithRetry(false, useDurationFilter);
         if (useDurationFilter) return fetchWithRetry(false, false);
       }
 
       if (type === 'video') {
         const videoIds = items.map((v: any) => v.id.videoId).filter(Boolean).join(',') || '';
-        if (!videoIds) return [];
+        if (!videoIds) return { items: [], nextPageToken };
         const videoData = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
-        return videoData.items || [];
+        return { items: videoData.items || [], nextPageToken };
       } else {
         const channelIds = items.map((c: any) => c.id.channelId).filter(Boolean).join(',') || '';
-        if (!channelIds) return [];
-        return youtubeApi.getChannelsByIds(channelIds);
+        if (!channelIds) return { items: [], nextPageToken };
+        const channels = await youtubeApi.getChannelsByIds(channelIds);
+        return { items: channels, nextPageToken };
       }
     };
 
     return fetchWithRetry(!!days, duration !== 'any');
+  },
+
+  // 여러 채널 ID로 채널 정보 가져오기
+  getChannelsByIds: async (ids: string): Promise<YouTubeChannel[]> => {
+    if (!ids) return [];
+    const data = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=channels&part=snippet,statistics,contentDetails,brandingSettings&id=${ids}`);
+    return data.items || [];
   },
 
   // 최근 영상 리스트 가져오기
@@ -119,15 +121,16 @@ export const youtubeApi = {
     return videoData.items || [];
   },
 
-  // 성공 영상 검색
+  // 성공 영상 검색 (무한 스크롤 지원)
   getSuccessVideos: async (
     category: string = '', 
     maxResults: number = 20, 
-    days: number = 7,
-    duration: 'any' | 'short' | 'medium' | 'long' = 'any'
-  ): Promise<any[]> => {
+    days: number = 30,
+    duration: 'any' | 'short' | 'medium' | 'long' = 'any',
+    pageToken?: string
+  ): Promise<{ items: any[], nextPageToken: string | null }> => {
     const query = category ? `${category} 인기 영상` : "인기 급상승";
-    return youtubeApi.search(query, 'video', 'viewCount', maxResults, days, duration);
+    return youtubeApi.search(query, 'video', 'viewCount', maxResults, days, duration, pageToken);
   },
 
   calculatePerformance: (views: number, subscribers: number) => {
