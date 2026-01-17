@@ -5,7 +5,7 @@ let supabaseClient: any = null;
 let initPromise: Promise<void> | null = null;
 
 /**
- * 서버(/api/supabase-config)로부터 환경 변수를 가져와 Supabase를 초기화합니다.
+ * 이미 검증된 엔드포인트인 /api/proxy를 통해 설정을 가져와 Supabase를 초기화합니다.
  */
 export async function initSupabase() {
   if (supabaseClient) return;
@@ -13,26 +13,22 @@ export async function initSupabase() {
 
   initPromise = (async () => {
     try {
-      // 엔드포인트 이름을 supabase-config로 변경하여 404 이슈 해결 시도
-      const res = await fetch('/api/supabase-config', { cache: 'no-store' });
+      // 404 에러를 피하기 위해 작동이 확인된 proxy 경로를 사용합니다.
+      const res = await fetch('/api/proxy?path=supabase-config', { cache: 'no-store' });
       
-      if (res.status === 404) {
-        throw new Error("서버에서 설정 엔드포인트를 찾을 수 없습니다(404). 배포 상태를 확인해주세요.");
-      }
-
       const contentType = res.headers.get('content-type');
       if (!res.ok || !contentType || !contentType.includes('application/json')) {
         const text = await res.text();
-        throw new Error(`잘못된 서버 응답: ${res.status} ${text.substring(0, 100)}`);
+        throw new Error(`서버 응답 오류: ${res.status} ${text.substring(0, 100)}`);
       }
 
       const config = await res.json();
       
       if (config && config.supabaseUrl && config.supabaseAnonKey) {
         supabaseClient = createClient(config.supabaseUrl, config.supabaseAnonKey);
-        console.log("✅ Supabase 초기화 성공");
+        console.log("✅ Supabase 초기화 성공 (Integrated Endpoint)");
       } else {
-        console.warn("⚠️ Supabase 환경 변수가 설정되지 않았습니다. 대시보드 설정을 확인하세요.");
+        console.warn("⚠️ Supabase 환경 변수가 설정되어 있지 않습니다.");
       }
     } catch (e) {
       console.error("❌ DB 설정을 가져오는데 실패했습니다:", e);
