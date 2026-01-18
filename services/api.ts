@@ -4,7 +4,6 @@ import { getSupabase } from './supabase.ts';
 
 const PROXY_PATH = '/api/proxy'; 
 const CACHE_EXPIRATION_MS = 4 * 60 * 60 * 1000; // 4시간 캐시
-const MAX_TOTAL_RESULTS = 100; // API 쿼터 보호를 위한 최대 누적 결과 수
 
 const isCacheValid = (updatedAt: string | null) => {
   if (!updatedAt) return false;
@@ -14,6 +13,18 @@ const isCacheValid = (updatedAt: string | null) => {
 };
 
 const getUserApiKey = () => localStorage.getItem('user_youtube_api_key');
+
+/**
+ * ISO 8601 재생 시간 포맷(PT#H#M#S)을 초 단위로 변환합니다.
+ */
+const parseISO8601Duration = (duration: string): number => {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  const h = parseInt(match[1] || '0');
+  const m = parseInt(match[2] || '0');
+  const s = parseInt(match[3] || '0');
+  return h * 3600 + m * 60 + s;
+};
 
 export const youtubeApi = {
   safeFetch: async (endpoint: string, params: Record<string, any> = {}) => {
@@ -144,15 +155,20 @@ export const youtubeApi = {
   search: async (query: string, type: 'channel' | 'video', order: string = 'relevance', maxResults: number = 20, days?: number, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
     let cleanQuery = query.trim() || "인기";
     let enhancedQuery = cleanQuery;
-    let videoDuration: string | undefined = undefined;
+    let apiVideoDuration: string | undefined = undefined;
+
+    // 필터링 풀을 확보하기 위해 내부적으로는 항상 최대치(50개)를 요청합니다.
+    const searchBatchSize = (duration === 'any' || type === 'channel') ? Math.min(maxResults, 50) : 50;
 
     if (type === 'video') {
       if (duration === 'short') {
         enhancedQuery += " #Shorts";
-        videoDuration = 'short'; // < 4 min (유튜브 API 기준)
+        apiVideoDuration = 'short'; // < 4 min
       } else if (duration === 'medium' || duration === 'long') {
-        enhancedQuery += " -Shorts -쇼츠";
-        videoDuration = duration;
+        // 롱폼 검색 시 쇼츠 관련 키워드를 마이너스 처리하여 검색 품질을 높입니다.
+        enhancedQuery += " -#shorts -shorts -쇼츠";
+        // YouTube API의 'medium'은 4분~20분만 포함하므로, 1분~4분 롱폼을 위해 'any'로 요청 후 수동 필터링합니다.
+        apiVideoDuration = undefined; 
       }
     }
 
@@ -160,12 +176,12 @@ export const youtubeApi = {
       part: 'snippet', 
       type: type, 
       order: order, 
-      maxResults: Math.min(maxResults, 50), 
+      maxResults: searchBatchSize, 
       q: enhancedQuery, 
       regionCode: 'KR' 
     };
     if (pageToken) params.pageToken = pageToken;
-    if (videoDuration) params.videoDuration = videoDuration;
+    if (apiVideoDuration) params.videoDuration = apiVideoDuration;
     if (days) params.publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     const searchData = await youtubeApi.safeFetch('search', params);
@@ -177,26 +193,31 @@ export const youtubeApi = {
       if (!videoIds) return { items: [], nextPageToken };
       const videoData = await youtubeApi.safeFetch('videos', { part: 'snippet,statistics,contentDetails', id: videoIds });
       
-      // 쇼츠 여부를 contentDetails.duration으로 최종 필터링 (선택 사항이나 정확도를 위해 권장)
       let finalItems = videoData.items || [];
+
+      // UX 기준 쇼츠(60초 이하)와 롱폼(60초 초과)을 엄격하게 분리합니다.
       if (duration === 'short') {
         finalItems = finalItems.filter((v: any) => {
           const sec = parseISO8601Duration(v.contentDetails.duration);
-          return sec <= 60;
+          return sec > 0 && sec <= 60;
         });
       } else if (duration === 'medium' || duration === 'long') {
         finalItems = finalItems.filter((v: any) => {
           const sec = parseISO8601Duration(v.contentDetails.duration);
-          return sec > 60;
+          const title = (v.snippet.title || '').toLowerCase();
+          // 제목에 쇼츠가 명시된 경우도 한 번 더 제외합니다.
+          const isShortsTag = title.includes('#shorts') || title.includes('shorts');
+          return sec > 60 && !isShortsTag;
         });
       }
 
-      return { items: finalItems, nextPageToken };
+      // 사용자가 요청한 개수만큼만 잘라서 반환합니다.
+      return { items: finalItems.slice(0, maxResults), nextPageToken };
     } else {
       const channelIds = items.map((c: any) => c.id.channelId).filter(Boolean).join(',');
       if (!channelIds) return { items: [], nextPageToken };
       const channels = await youtubeApi.getChannelsByIds(channelIds);
-      return { items: channels, nextPageToken };
+      return { items: channels.slice(0, maxResults), nextPageToken };
     }
   },
 
@@ -211,6 +232,7 @@ export const youtubeApi = {
   },
 
   getChannelsByIds: async (ids: string) => {
+    if (!ids) return [];
     const data = await youtubeApi.safeFetch('channels', { part: 'snippet,statistics,contentDetails,brandingSettings', id: ids });
     return data.items || [];
   },
@@ -222,12 +244,4 @@ export const youtubeApi = {
     const videoData = await youtubeApi.safeFetch('videos', { part: 'snippet,statistics,contentDetails', id: videoIds });
     return videoData.items || [];
   }
-};
-
-const parseISO8601Duration = (duration: string) => {
-  const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-  const hours = (parseInt(match?.[1] || '0') || 0);
-  const minutes = (parseInt(match?.[2] || '0') || 0);
-  const seconds = (parseInt(match?.[3] || '0') || 0);
-  return hours * 3600 + minutes * 60 + seconds;
 };
