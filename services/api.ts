@@ -3,12 +3,8 @@ import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 import { getSupabase } from './supabase.ts';
 
 const PROXY_PATH = '/api/proxy'; 
-// 캐시 유효 기간: 4시간 (4 * 60 * 60 * 1000 ms)
 const CACHE_EXPIRATION_MS = 4 * 60 * 60 * 1000;
 
-/**
- * 데이터가 유효한지(4시간 이내인지) 확인합니다.
- */
 const isCacheValid = (updatedAt: string | null) => {
   if (!updatedAt) return false;
   const lastUpdate = new Date(updatedAt).getTime();
@@ -16,9 +12,6 @@ const isCacheValid = (updatedAt: string | null) => {
   return now - lastUpdate < CACHE_EXPIRATION_MS;
 };
 
-/**
- * 로컬스토리지에서 사용자 개인 API 키를 가져옵니다.
- */
 const getUserApiKey = () => localStorage.getItem('user_youtube_api_key');
 
 export const youtubeApi = {
@@ -41,16 +34,27 @@ export const youtubeApi = {
 
     try {
       const res = await fetch(url);
+      
+      // 서버에서 403(권한/할당량)이나 400(잘못된 요청)이 오면 명시적으로 에러 처리
+      if (res.status === 403 || res.status === 402) {
+        console.warn("⚠️ YouTube API Quota Exceeded or Invalid Key on Server.");
+        throw new Error('QUOTA_LIMIT_REACHED');
+      }
+
       const data = await res.json().catch(() => ({}));
       
-      const errorReason = data.error?.errors?.[0]?.reason;
-      if (errorReason === 'quotaExceeded' || (res.status === 403 && errorReason === 'quotaExceeded')) {
-        throw new Error('QUOTA_LIMIT_REACHED');
+      if (data.error) {
+        const reason = data.error.errors?.[0]?.reason;
+        if (reason === 'quotaExceeded' || reason === 'keyInvalid') {
+          throw new Error('QUOTA_LIMIT_REACHED');
+        }
+        return { items: [], nextPageToken: null };
       }
       
       if (!res.ok) return { items: [], nextPageToken: null };
       return data;
     } catch (e: any) {
+      console.error(`❌ API Fetch Error (${endpoint}):`, e.message);
       if (e.message === 'QUOTA_LIMIT_REACHED') throw e;
       return { items: [], nextPageToken: null };
     }
@@ -69,14 +73,15 @@ export const youtubeApi = {
         if (category) query = query.eq('category', category);
         
         const { data: dbData, error } = await query;
-        // DB에 데이터가 있고, 가장 최신 데이터가 4시간 이내라면 캐시 사용
+        // 테이블이 없거나(404) 에러가 나면 바로 API 호출로 폴백
         if (!error && dbData && dbData.length > 0 && isCacheValid(dbData[0].created_at)) {
           return { items: dbData.map((d: any) => d.data), nextPageToken: null };
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("DB Cache ignored due to connection issues.");
+    }
     
-    // 캐시가 없거나 만료된 경우 API 호출
     return youtubeApi.search(category ? `${category} 인기 영상` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
   },
 
@@ -89,25 +94,22 @@ export const youtubeApi = {
           .eq('keyword', keyword)
           .single();
         
-        // 데이터가 존재하고 4시간 이내라면 반환
         if (!error && data && isCacheValid(data.updated_at)) {
           return data.data;
         }
       }
     } catch (e) {}
     
-    // 데이터가 없거나 4시간이 지났으면 새로 가져옴
     const result = await youtubeApi.search(keyword, 'video', 'viewCount', pageSize, 7);
     
     try {
       const db = await getSupabase();
       if (db && result.items.length > 0) {
-        // 최신 데이터로 업데이트 (Overwrite)
         await db.from('views_analysis').upsert({
           keyword: keyword,
           data: result,
           updated_at: new Date().toISOString()
-        });
+        }).catch(() => null); // 테이블 부재 시 무시
       }
     } catch (e) {}
     
@@ -161,7 +163,6 @@ export const youtubeApi = {
           .or(`id.eq."${identifier}",custom_url.eq."${identifier.startsWith('@') ? identifier : '@' + identifier}"`)
           .single();
         
-        // 캐시 데이터가 유효하면 즉시 반환
         if (cached && isCacheValid(cached.updated_at)) {
           return cached.data;
         }
@@ -186,7 +187,7 @@ export const youtubeApi = {
             custom_url: channel.snippet.customUrl,
             data: channel,
             updated_at: new Date().toISOString()
-          });
+          }).catch(() => null);
         }
       } catch (e) {}
     }
