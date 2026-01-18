@@ -10,6 +10,7 @@ export async function initSupabase() {
 
   initPromise = (async () => {
     try {
+      // 서버 측 프록시 엔드포인트에서 설정 로드
       const res = await fetch('/api/proxy?path=supabase-config', { cache: 'no-store' });
       
       if (!res.ok) {
@@ -18,11 +19,12 @@ export async function initSupabase() {
 
       const config = await res.json();
       
-      if (config && config.supabaseUrl && config.supabaseAnonKey && config.supabaseUrl.startsWith('https://')) {
+      if (config && config.supabaseUrl && config.supabaseAnonKey) {
+        // Supabase 클라이언트 생성 (Anon Key가 반드시 존재해야 함)
         supabaseClient = createClient(config.supabaseUrl, config.supabaseAnonKey);
-        console.log("✅ Supabase initialized successfully via proxy.");
+        console.log("✅ Supabase initialized successfully with keys from server.");
       } else {
-        console.warn("⚠️ Supabase config is incomplete. Database features will be disabled.");
+        console.error("❌ Supabase config is missing from server env variables.");
       }
     } catch (e) {
       console.error("❌ Database initialization failed:", e);
@@ -32,33 +34,16 @@ export async function initSupabase() {
   return initPromise;
 }
 
+/**
+ * DB 클라이언트를 가져올 때는 반드시 이 함수를 await 해야 합니다.
+ * 그래야 설정 값이 서버에서 올 때까지 기다린 후 작업을 수행합니다.
+ */
 export const getSupabase = async () => {
-  await initSupabase();
+  if (!supabaseClient) {
+    await initSupabase();
+  }
   return supabaseClient;
 };
 
-// 프록시 객체를 통해 클라이언트 부재 시에도 런타임 에러 방지
-export const supabase = new Proxy({} as any, {
-  get: (target, prop) => {
-    if (!supabaseClient) {
-      return (...args: any[]) => ({ 
-        from: () => ({ 
-          select: () => ({ 
-            eq: () => ({ 
-              or: () => ({
-                single: () => Promise.resolve({ data: null, error: { message: 'DB Not Found', status: 404 } }),
-              }),
-              order: () => ({ 
-                limit: () => ({ 
-                  single: () => Promise.resolve({ data: null, error: { message: 'DB Not Found', status: 404 } }),
-                  then: (cb: any) => cb({ data: [], error: { message: 'DB Not Found', status: 404 } }) 
-                }) 
-              }) 
-            }) 
-          }) 
-        }) 
-      });
-    }
-    return supabaseClient[prop];
-  }
-});
+// 하위 호환성을 위해 빈 객체로 내보내지만, 실제 데이터 작업은 getSupabase()를 통해야 합니다.
+export const supabase = null;

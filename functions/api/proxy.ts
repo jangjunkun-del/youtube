@@ -1,7 +1,7 @@
 
 /**
  * Cloudflare Functions (Server-side)
- * 유튜브 API 프록시와 DB 설정을 통합 관리합니다.
+ * 모든 프록시 및 서버 환경 변수 관리를 통합합니다.
  */
 export async function onRequest(context: { request: Request, env: { YOUTUBE_API_KEY: string, SUPABASE_URL?: string, SUPABASE_ANON_KEY?: string } }) {
   const { searchParams } = new URL(context.request.url);
@@ -14,11 +14,14 @@ export async function onRequest(context: { request: Request, env: { YOUTUBE_API_
     });
   }
 
-  // 1. DB 설정 요청 처리
+  // 1. DB 설정 요청 처리: 서버의 Secrets를 안전하게 프론트엔드로 전달
   if (path === 'supabase-config') {
+    const url = context.env.SUPABASE_URL || '';
+    const key = context.env.SUPABASE_ANON_KEY || '';
+    
     return new Response(JSON.stringify({
-      supabaseUrl: context.env.SUPABASE_URL || '',
-      supabaseAnonKey: context.env.SUPABASE_ANON_KEY || ''
+      supabaseUrl: url,
+      supabaseAnonKey: key
     }), {
       headers: {
         'Content-Type': 'application/json',
@@ -27,16 +30,15 @@ export async function onRequest(context: { request: Request, env: { YOUTUBE_API_
     });
   }
 
-  // 2. 유튜브 API Key 확인
+  // 2. 유튜브 API Key 확인 및 프록시 호출
   const apiKey = context.env.YOUTUBE_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'YouTube API Key is missing in server environment variables.' }), { 
+    return new Response(JSON.stringify({ error: 'YouTube API Key is not configured on the server.' }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
   }
 
-  // 유튜브 API 파라미터 구성
   const youtubeParams = new URLSearchParams(searchParams);
   youtubeParams.delete('path'); 
   youtubeParams.set('key', apiKey);
