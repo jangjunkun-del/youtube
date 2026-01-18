@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Trash2, Info, Moon, Sun, Globe, Key, ShieldCheck, ExternalLink, Lock, EyeOff } from 'lucide-react';
+import { Trash2, Info, Moon, Sun, Globe, Key, ShieldCheck, ExternalLink, Lock, EyeOff, mousePointer2 as ClickIcon, Layers, CreditCard } from 'lucide-react';
 import InfoRow from '../components/InfoRow.tsx';
 
 const Settings: React.FC = () => {
@@ -47,8 +47,8 @@ const Settings: React.FC = () => {
       </header>
 
       <div className="space-y-4">
-        {/* API 키 설정 - 기술적 안심 절대 보장 강화 */}
-        <section className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border-2 border-emerald-500/20 shadow-xl space-y-6 relative overflow-hidden">
+        {/* API 키 설정 및 발급 가이드 */}
+        <section className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border-2 border-emerald-500/20 shadow-xl space-y-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <ShieldCheck size={100} className="text-emerald-500" />
           </div>
@@ -56,38 +56,49 @@ const Settings: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center gap-2 font-black text-emerald-600">
               <Lock size={20} />
-              <span>YouTube Data API 개인 키 (기밀 유지 100% 기술적 보장)</span>
+              <span>YouTube Data API 개인 키 등록</span>
             </div>
             
             <div className="bg-emerald-50 dark:bg-emerald-900/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 space-y-4">
               <div className="flex items-center gap-2 text-xs font-black text-emerald-700 dark:text-emerald-400">
                 <EyeOff size={14} />
-                <span>알고픽은 사용자의 API Key를 '구경'조차 할 수 없는 구조입니다.</span>
+                <span>기술적 보안: 키는 본인 브라우저에만 저장되며 서버는 접근할 수 없습니다.</span>
               </div>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                  <span><strong>서버 전송 0% (Client-Direct):</strong> 입력하신 키는 서버로 전송되지 않으며, 브라우저가 Google API 서버와 1:1로 직접 통신합니다.</span>
-                </li>
-                <li className="flex items-start gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                  <span><strong>로그 기록 및 저장 불가:</strong> 알고픽 데이터베이스에는 키 저장 공간 자체가 설계되어 있지 않아 기술적으로 수집이 불가능합니다.</span>
-                </li>
-                <li className="flex items-start gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                  <span><strong>로컬 보안 보관:</strong> 오직 본인의 PC/모바일 브라우저(LocalStorage) 내부에만 암호화 보관되며, 언제든 즉시 파기할 수 있습니다.</span>
-                </li>
-              </ul>
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* 비주얼 가이드 단계 추가 */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">무료 API 키 발급 가이드 (1분 소요)</h4>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border dark:border-white/5">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-emerald-500/20">1</div>
+                <div className="text-xs font-bold leading-relaxed">
+                  <a href="https://console.cloud.google.com/" target="_blank" className="text-emerald-600 underline">Google Cloud Console</a> 접속 후 새 프로젝트를 생성합니다.
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border dark:border-white/5">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-emerald-500/20">2</div>
+                <div className="text-xs font-bold leading-relaxed">
+                  [API 및 서비스] -> [라이브러리]에서 <span className="text-red-600">YouTube Data API v3</span>를 찾아 '사용' 버튼을 클릭합니다.
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border dark:border-white/5">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-emerald-500/20">3</div>
+                <div className="text-xs font-bold leading-relaxed">
+                  [사용자 인증 정보] 탭에서 'API 키 만들기'를 클릭하여 생성된 키를 아래에 복사+붙여넣기 하세요.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-4 border-t dark:border-white/5">
             <div className="relative">
               <input 
                 type="password"
                 value={userKey}
                 onChange={(e) => setUserKey(e.target.value)}
-                placeholder="AIzaSy... (YouTube Data API v3 Key)"
+                placeholder="AIzaSy... 로 시작하는 키를 입력하세요"
                 className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-sm font-mono outline-none focus:border-emerald-500 transition-all"
               />
               <button 
@@ -96,17 +107,9 @@ const Settings: React.FC = () => {
                   isSaved ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white hover:bg-emerald-600'
                 }`}
               >
-                {isSaved ? '기술적 보안 저장 완료' : '키 안전하게 저장'}
+                {isSaved ? '보안 저장 완료' : '키 안전하게 저장'}
               </button>
             </div>
-            <a 
-              href="https://console.cloud.google.com/apis/credentials" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] font-black text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest"
-            >
-              무료 API 키 1분 발급 가이드 <ExternalLink size={12} />
-            </a>
           </div>
         </section>
 
@@ -144,7 +147,7 @@ const Settings: React.FC = () => {
             <span>서비스 정보</span>
           </div>
           <div className="space-y-3">
-            <InfoRow label="버전" value="v1.3.2 (Enhanced Privacy)" />
+            <InfoRow label="버전" value="v1.3.3 (Visual Guide Update)" />
             <InfoRow label="데이터 출처" value="YouTube Data API v3" />
             <InfoRow label="보안 설계" value="Client-Side Direct P2P API Call" />
           </div>
