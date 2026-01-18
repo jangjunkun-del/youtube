@@ -16,7 +16,8 @@ import {
   Youtube,
   Play,
   TrendingUp,
-  Layout
+  Layout,
+  Settings as SettingsIcon
 } from 'lucide-react';
 
 // Lazy loading or direct imports for new pages
@@ -28,6 +29,7 @@ import RankingPage from './pages/RankingPage.tsx';
 import SuccessVideosPage from './pages/SuccessVideosPage.tsx';
 import GuidePage from './pages/GuidePage.tsx';
 import VideoDetailPage from './pages/VideoDetailPage.tsx';
+import Settings from './pages/Settings.tsx';
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -100,6 +102,16 @@ const App: React.FC = () => {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link 
+            to="/settings" 
+            className={`p-2.5 rounded-full transition-colors ${
+              location.pathname === '/settings' 
+              ? 'bg-red-50 dark:bg-red-600/10 text-red-600' 
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
+            }`}
+          >
+            <SettingsIcon size={20} />
+          </Link>
           <button 
             onClick={() => setDarkMode(!darkMode)}
             className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors"
@@ -141,6 +153,17 @@ const App: React.FC = () => {
                 {item.label}
               </Link>
             ))}
+            <Link
+              to="/settings"
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-base font-bold transition-all ${
+                location.pathname === '/settings' 
+                ? 'bg-red-50 dark:bg-red-600/10 text-red-600' 
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <SettingsIcon size={20} />
+              설정
+            </Link>
           </nav>
         </aside>
       </div>
@@ -156,6 +179,7 @@ const App: React.FC = () => {
           <Route path="/success-videos" element={<SuccessVideosPage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/video/:id" element={<VideoDetailPage />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
 
@@ -190,6 +214,11 @@ const App: React.FC = () => {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link to="/settings" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-red-600 transition-colors">
+                  설정
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
