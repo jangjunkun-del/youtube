@@ -2,7 +2,8 @@
 import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 import { getSupabase } from './supabase.ts';
 
-const API_BASE = '/api';
+// 통합된 프록시 경로를 사용합니다.
+const API_BASE = ''; 
 
 export const youtubeApi = {
   safeFetch: async (url: string) => {
@@ -69,7 +70,7 @@ export const youtubeApi = {
       if (duration === 'short') enhancedQuery += " #Shorts";
       else if (duration === 'medium' || duration === 'long') enhancedQuery += " -Shorts -쇼츠";
     }
-    let url = `${API_BASE}/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(enhancedQuery)}&regionCode=KR`;
+    let url = `/proxy?path=search&part=snippet&type=${type}&order=${order}&maxResults=${maxResults}&q=${encodeURIComponent(enhancedQuery)}&regionCode=KR`;
     if (pageToken) url += `&pageToken=${pageToken}`;
     if (days) {
       const publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -81,7 +82,7 @@ export const youtubeApi = {
     if (type === 'video') {
       const videoIds = items.map((v: any) => v.id.videoId).filter(Boolean).join(',') || '';
       if (!videoIds) return { items: [], nextPageToken };
-      const videoData = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
+      const videoData = await youtubeApi.safeFetch(`/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
       return { items: videoData.items || [], nextPageToken };
     } else {
       const channelIds = items.map((c: any) => c.id.channelId).filter(Boolean).join(',') || '';
@@ -91,46 +92,61 @@ export const youtubeApi = {
     }
   },
 
-  syncAllToDb: async () => {
-    const db = await getSupabase();
-    if (!db) return false;
-    const categories = ['게임', '먹방', '테크', '경제'];
-    for (const cat of categories) {
-      const res = await youtubeApi.search(`${cat} 인기 영상`, 'video', 'viewCount', 50, 30);
-      if (res.items.length > 0) {
-        const payloads = res.items.map(item => ({ id: item.id, category: cat, video_type: 'any', data: item }));
-        await db.from('success_videos').upsert(payloads);
-      }
-    }
-    return true;
-  },
-
   getVideoDetail: async (videoId: string): Promise<YouTubeVideo | null> => {
-    const data = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoId}`);
+    const data = await youtubeApi.safeFetch(`/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoId}`);
     return data.items?.[0] || null;
   },
 
   getChannelDetail: async (identifier: string): Promise<YouTubeChannel | null> => {
+    // 1. DB 캐시 먼저 확인 (API 소모량 절약)
+    try {
+      const db = await getSupabase();
+      if (db) {
+        const { data: cached } = await db.from('channels_cache').select('data').or(`id.eq.${identifier},custom_url.eq.${identifier}`).single();
+        if (cached) return cached.data;
+      }
+    } catch (e) {}
+
     let channelId = identifier;
+    // 핸들이나 이름으로 검색하는 경우 (search API 사용 - 100포인트 소모)
     if (identifier.startsWith('@') || !identifier.startsWith('UC')) {
-      const searchData = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=search&part=snippet&type=channel&q=${encodeURIComponent(identifier)}&maxResults=1`);
+      const searchData = await youtubeApi.safeFetch(`/proxy?path=search&part=snippet&type=channel&q=${encodeURIComponent(identifier)}&maxResults=1`);
       channelId = searchData.items?.[0]?.id?.channelId || identifier;
     }
-    const data = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=channels&part=snippet,statistics,contentDetails,brandingSettings&id=${channelId}`);
-    return data.items?.[0] || null;
+    
+    // 상세 정보 조회 (list API 사용 - 1포인트 소모)
+    const data = await youtubeApi.safeFetch(`/proxy?path=channels&part=snippet,statistics,contentDetails,brandingSettings&id=${channelId}`);
+    const channel = data.items?.[0] || null;
+
+    // 2. 조회된 결과 DB에 캐싱
+    if (channel) {
+      try {
+        const db = await getSupabase();
+        if (db) {
+          await db.from('channels_cache').upsert({
+            id: channel.id,
+            custom_url: channel.snippet.customUrl,
+            data: channel,
+            updated_at: new Date().toISOString()
+          });
+        }
+      } catch (e) {}
+    }
+    
+    return channel;
   },
 
   getChannelsByIds: async (ids: string): Promise<YouTubeChannel[]> => {
     if (!ids) return [];
-    const data = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=channels&part=snippet,statistics,contentDetails,brandingSettings&id=${ids}`);
+    const data = await youtubeApi.safeFetch(`/proxy?path=channels&part=snippet,statistics,contentDetails,brandingSettings&id=${ids}`);
     return data.items || [];
   },
 
   getChannelVideos: async (playlistId: string, maxResults: number = 50): Promise<YouTubeVideo[]> => {
-    const data = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=playlistItems&part=snippet,contentDetails&maxResults=${maxResults}&playlistId=${playlistId}`);
+    const data = await youtubeApi.safeFetch(`/proxy?path=playlistItems&part=snippet,contentDetails&maxResults=${maxResults}&playlistId=${playlistId}`);
     const videoIds = data.items?.map((v: any) => v.contentDetails?.videoId).join(',') || '';
     if (!videoIds) return [];
-    const videoData = await youtubeApi.safeFetch(`${API_BASE}/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
+    const videoData = await youtubeApi.safeFetch(`/proxy?path=videos&part=snippet,statistics,contentDetails&id=${videoIds}`);
     return videoData.items || [];
   },
 

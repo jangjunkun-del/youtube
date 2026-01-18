@@ -5,7 +5,7 @@ let supabaseClient: any = null;
 let initPromise: Promise<void> | null = null;
 
 /**
- * 이미 검증된 엔드포인트인 /api/proxy를 통해 설정을 가져와 Supabase를 초기화합니다.
+ * /proxy 통합 엔드포인트를 통해 설정을 가져와 Supabase를 초기화합니다.
  */
 export async function initSupabase() {
   if (supabaseClient) return;
@@ -13,8 +13,8 @@ export async function initSupabase() {
 
   initPromise = (async () => {
     try {
-      // 404 에러를 피하기 위해 작동이 확인된 proxy 경로를 사용합니다.
-      const res = await fetch('/api/proxy?path=supabase-config', { cache: 'no-store' });
+      // /api/proxy 대신 루트의 /proxy를 직접 호출합니다 (라우팅 이슈 방지).
+      const res = await fetch('/proxy?path=supabase-config', { cache: 'no-store' });
       
       const contentType = res.headers.get('content-type');
       if (!res.ok || !contentType || !contentType.includes('application/json')) {
@@ -26,7 +26,7 @@ export async function initSupabase() {
       
       if (config && config.supabaseUrl && config.supabaseAnonKey) {
         supabaseClient = createClient(config.supabaseUrl, config.supabaseAnonKey);
-        console.log("✅ Supabase 초기화 성공 (Integrated Endpoint)");
+        console.log("✅ Supabase 초기화 성공 (Integrated Root Proxy)");
       } else {
         console.warn("⚠️ Supabase 환경 변수가 설정되어 있지 않습니다.");
       }
