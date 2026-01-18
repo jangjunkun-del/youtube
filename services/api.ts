@@ -43,50 +43,64 @@ export const youtubeApi = {
     }
   },
 
-  // [성공 영상] 전용: success_videos 테이블 사용
+  // [성공 영상] 로직 보완
   getSuccessVideos: async (category: string = '', maxResults: number = 24, days: number = 30, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
     const db = await getSupabase();
     const catKey = category || 'all_trending';
     
+    // 1. 캐시 확인 (첫 페이지 요청일 때만)
     try {
       if (db && !pageToken) {
-        const { data: dbData } = await db.from('success_videos')
+        const { data: dbData, error: dbError } = await db.from('success_videos')
           .select('data, updated_at')
           .eq('category', catKey)
-          .order('updated_at', { ascending: false })
           .limit(1);
         
-        if (dbData && dbData.length > 0 && isCacheValid(dbData[0].updated_at)) {
+        if (!dbError && dbData && dbData.length > 0 && isCacheValid(dbData[0].updated_at)) {
+          console.log(`📦 Success Videos Cache Hit: ${catKey}`);
           return dbData[0].data;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("DB Cache fetch error:", e);
+    }
 
+    // 2. 실시간 데이터 호출
     const result = await youtubeApi.search(category ? `${category} 인기` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
     
+    // 3. DB 저장 (첫 페이지일 때만 Upsert)
     if (db && result.items.length > 0 && !pageToken) {
-      await db.from('success_videos').upsert({
-        category: catKey,
-        data: result,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'category' });
+      try {
+        const { error: upsertError } = await db.from('success_videos').upsert({
+          category: catKey,
+          data: result,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'category' });
+        
+        if (upsertError) console.error("DB Save Error (success_videos):", upsertError);
+        else console.log(`💾 Success Videos Saved to DB: ${catKey}`);
+      } catch (e) {
+        console.error("DB Upsert Exception:", e);
+      }
     }
     return result;
   },
 
-  // [조회수 분석] 전용: views_analysis 테이블 사용
+  // [조회수 분석] (정상 작동 중인 로직 유지 및 보강)
   getViewsAnalysis: async (keyword: string, pageSize: number = 24) => {
     const db = await getSupabase();
     const cleanKeyword = keyword || 'default_trending';
     
     try {
       if (db) {
-        const { data } = await db.from('views_analysis')
+        const { data, error } = await db.from('views_analysis')
           .select('data, updated_at')
           .eq('keyword', cleanKeyword)
-          .single();
+          .limit(1);
         
-        if (data && isCacheValid(data.updated_at)) return data.data;
+        if (!error && data && data.length > 0 && isCacheValid(data[0].updated_at)) {
+          return data[0].data;
+        }
       }
     } catch (e) {}
     
@@ -101,30 +115,46 @@ export const youtubeApi = {
     return result;
   },
 
-  // [성능 랭킹] 전용: channel_rankings 테이블 사용
+  // [성능 랭킹] 로직 보완
   getChannelRankings: async (rankType: string, limit: number = 20) => {
     const db = await getSupabase();
-    const type = rankType || 'performance_weekly';
+    const type = rankType || 'performance_any';
     
+    // 1. 캐시 확인
     try {
       if (db) {
-        const { data } = await db.from('channel_rankings')
+        const { data: dbData, error: dbError } = await db.from('channel_rankings')
           .select('data, updated_at')
           .eq('rank_type', type)
-          .single();
+          .limit(1);
         
-        if (data && isCacheValid(data.updated_at)) return data.data;
+        if (!dbError && dbData && dbData.length > 0 && isCacheValid(dbData[0].updated_at)) {
+          console.log(`📦 Ranking Cache Hit: ${type}`);
+          return dbData[0].data;
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("DB Ranking fetch error:", e);
+    }
 
-    // 랭킹에 쓰일 소스 데이터 (고조회수 영상들)
-    const result = await youtubeApi.search("인기 영상", 'video', 'viewCount', limit, 7);
+    // 2. 실시간 데이터 호출 (랭킹 타입에 따른 쿼리 최적화)
+    const searchQuery = type.includes('short') ? "인기 쇼츠 #Shorts" : "인기 영상 인기 급상승";
+    const result = await youtubeApi.search(searchQuery, 'video', 'viewCount', limit, 7);
+    
+    // 3. DB 저장
     if (db && result.items.length > 0) {
-      await db.from('channel_rankings').upsert({
-        rank_type: type,
-        data: result,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'rank_type' });
+      try {
+        const { error: upsertError } = await db.from('channel_rankings').upsert({
+          rank_type: type,
+          data: result,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'rank_type' });
+        
+        if (upsertError) console.error("DB Save Error (channel_rankings):", upsertError);
+        else console.log(`💾 Performance Rankings Saved: ${type}`);
+      } catch (e) {
+        console.error("DB Upsert Exception (Rankings):", e);
+      }
     }
     return result;
   },
