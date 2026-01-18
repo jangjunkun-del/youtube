@@ -18,7 +18,6 @@ export const youtubeApi = {
   safeFetch: async (endpoint: string, params: Record<string, any> = {}) => {
     const userKey = getUserApiKey();
     const queryParams = new URLSearchParams();
-    
     Object.entries(params).forEach(([key, val]) => {
       if (val !== undefined && val !== null) queryParams.append(key, String(val));
     });
@@ -36,102 +35,98 @@ export const youtubeApi = {
       const res = await fetch(url);
       if (res.status === 403 || res.status === 402) throw new Error('QUOTA_LIMIT_REACHED');
       const data = await res.json().catch(() => ({}));
-      if (data.error) {
-        const reason = data.error.errors?.[0]?.reason;
-        if (reason === 'quotaExceeded' || reason === 'keyInvalid') throw new Error('QUOTA_LIMIT_REACHED');
-        return { items: [], nextPageToken: null };
-      }
+      if (data.error) throw new Error(data.error.errors?.[0]?.reason || 'API_ERROR');
       return data;
     } catch (e: any) {
-      if (e.message === 'QUOTA_LIMIT_REACHED') throw e;
+      if (e.message === 'quotaExceeded' || e.message === 'QUOTA_LIMIT_REACHED') throw new Error('QUOTA_LIMIT_REACHED');
       return { items: [], nextPageToken: null };
     }
   },
 
+  // [성공 영상] 전용: success_videos 테이블 사용
   getSuccessVideos: async (category: string = '', maxResults: number = 24, days: number = 30, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
     const db = await getSupabase();
-    try {
-      if (db) {
-        let query = db.from('success_videos')
-          .select('data, created_at')
-          .order('created_at', { ascending: false })
-          .limit(maxResults);
-        
-        if (category) query = query.eq('category', category);
-        
-        const { data: dbData, error } = await query;
-        if (!error && dbData && dbData.length > 0 && isCacheValid(dbData[0].created_at)) {
-          return { items: dbData.map((d: any) => d.data), nextPageToken: null };
-        }
-      }
-    } catch (e) {
-      console.warn("DB Read Error:", e);
-    }
-
-    // API 호출 후 DB에 저장
-    const result = await youtubeApi.search(category ? `${category} 인기 영상` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
+    const catKey = category || 'all_trending';
     
-    if (db && result.items.length > 0 && !pageToken) {
-      const rows = result.items.map((item: any) => ({
-        category: category || 'trending',
-        data: item
-      }));
-      // 기존 카테고리 데이터 삭제 후 새 데이터 삽입 (최신화)
-      await db.from('success_videos').delete().eq('category', category || 'trending');
-      await db.from('success_videos').insert(rows);
-    }
-
-    return result;
-  },
-
-  getViewsAnalysis: async (keyword: string, pageSize: number = 24) => {
-    const db = await getSupabase();
     try {
-      if (db) {
-        const { data, error } = await db.from('views_analysis')
+      if (db && !pageToken) {
+        const { data: dbData } = await db.from('success_videos')
           .select('data, updated_at')
-          .eq('keyword', keyword)
-          .single();
+          .eq('category', catKey)
+          .order('updated_at', { ascending: false })
+          .limit(1);
         
-        if (!error && data && isCacheValid(data.updated_at)) {
-          return data.data;
+        if (dbData && dbData.length > 0 && isCacheValid(dbData[0].updated_at)) {
+          return dbData[0].data;
         }
       }
     } catch (e) {}
-    
-    const result = await youtubeApi.search(keyword, 'video', 'viewCount', pageSize, 7);
 
-    // API 호출 결과를 DB에 저장 (Upsert)
+    const result = await youtubeApi.search(category ? `${category} 인기` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
+    
+    if (db && result.items.length > 0 && !pageToken) {
+      await db.from('success_videos').upsert({
+        category: catKey,
+        data: result,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'category' });
+    }
+    return result;
+  },
+
+  // [조회수 분석] 전용: views_analysis 테이블 사용
+  getViewsAnalysis: async (keyword: string, pageSize: number = 24) => {
+    const db = await getSupabase();
+    const cleanKeyword = keyword || 'default_trending';
+    
+    try {
+      if (db) {
+        const { data } = await db.from('views_analysis')
+          .select('data, updated_at')
+          .eq('keyword', cleanKeyword)
+          .single();
+        
+        if (data && isCacheValid(data.updated_at)) return data.data;
+      }
+    } catch (e) {}
+    
+    const result = await youtubeApi.search(cleanKeyword, 'video', 'viewCount', pageSize, 7);
     if (db && result.items.length > 0) {
       await db.from('views_analysis').upsert({
-        keyword: keyword,
+        keyword: cleanKeyword,
         data: result,
         updated_at: new Date().toISOString()
       }, { onConflict: 'keyword' });
     }
-
     return result;
   },
 
-  getChannelRankings: async (rankType: string, limit: number = 10) => {
+  // [성능 랭킹] 전용: channel_rankings 테이블 사용
+  getChannelRankings: async (rankType: string, limit: number = 20) => {
     const db = await getSupabase();
+    const type = rankType || 'performance_weekly';
+    
     try {
       if (db) {
-        const { data, error } = await db.from('channel_rankings')
+        const { data } = await db.from('channel_rankings')
           .select('data, updated_at')
-          .eq('rank_type', rankType)
-          .order('updated_at', { ascending: false })
-          .limit(limit);
-          
-        if (!error && data && data.length > 0 && isCacheValid(data[0].updated_at)) {
-          return data.map((d: any) => d.data);
-        }
+          .eq('rank_type', type)
+          .single();
+        
+        if (data && isCacheValid(data.updated_at)) return data.data;
       }
     } catch (e) {}
 
-    // 랭킹 데이터는 현재 Mock 데이터이거나 실시간 계산이 필요하므로 
-    // 여기서는 DB 저장 로직만 구조적으로 열어둡니다.
-    return null;
+    // 랭킹에 쓰일 소스 데이터 (고조회수 영상들)
+    const result = await youtubeApi.search("인기 영상", 'video', 'viewCount', limit, 7);
+    if (db && result.items.length > 0) {
+      await db.from('channel_rankings').upsert({
+        rank_type: type,
+        data: result,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'rank_type' });
+    }
+    return result;
   },
 
   search: async (query: string, type: 'channel' | 'video', order: string = 'relevance', maxResults: number = 20, days?: number, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
@@ -142,58 +137,43 @@ export const youtubeApi = {
       else if (duration === 'medium' || duration === 'long') enhancedQuery += " -Shorts -쇼츠";
     }
 
-    const params: any = {
-      part: 'snippet',
-      type: type,
-      order: order,
-      maxResults: maxResults,
-      q: enhancedQuery,
-      regionCode: 'KR'
-    };
+    const params: any = { part: 'snippet', type: type, order: order, maxResults: maxResults, q: enhancedQuery, regionCode: 'KR' };
     if (pageToken) params.pageToken = pageToken;
-    if (days) {
-      params.publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-    }
+    if (days) params.publishedAfter = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     const searchData = await youtubeApi.safeFetch('search', params);
     const items = searchData.items || [];
     const nextPageToken = searchData.nextPageToken || null;
 
     if (type === 'video') {
-      const videoIds = items.map((v: any) => v.id.videoId).filter(Boolean).join(',') || '';
+      const videoIds = items.map((v: any) => v.id.videoId).filter(Boolean).join(',');
       if (!videoIds) return { items: [], nextPageToken };
       const videoData = await youtubeApi.safeFetch('videos', { part: 'snippet,statistics,contentDetails', id: videoIds });
       return { items: videoData.items || [], nextPageToken };
     } else {
-      const channelIds = items.map((c: any) => c.id.channelId).filter(Boolean).join(',') || '';
+      const channelIds = items.map((c: any) => c.id.channelId).filter(Boolean).join(',');
       if (!channelIds) return { items: [], nextPageToken };
       const channels = await youtubeApi.getChannelsByIds(channelIds);
       return { items: channels, nextPageToken };
     }
   },
 
-  getChannelDetail: async (identifier: string): Promise<YouTubeChannel | null> => {
-    let channelId = identifier;
-    if (identifier.startsWith('@') || !identifier.startsWith('UC')) {
-      const searchData = await youtubeApi.safeFetch('search', { part: 'snippet', type: 'channel', q: identifier, maxResults: 1 });
-      channelId = searchData.items?.[0]?.id?.channelId || identifier;
-    }
-    const data = await youtubeApi.safeFetch('channels', { part: 'snippet,statistics,contentDetails,brandingSettings', id: channelId });
+  getChannelDetail: async (id: string) => {
+    const data = await youtubeApi.safeFetch('channels', { part: 'snippet,statistics,contentDetails,brandingSettings', id });
     return data.items?.[0] || null;
   },
 
-  getVideoDetail: async (videoId: string): Promise<YouTubeVideo | null> => {
-    const data = await youtubeApi.safeFetch('videos', { part: 'snippet,statistics,contentDetails', id: videoId });
+  getVideoDetail: async (id: string) => {
+    const data = await youtubeApi.safeFetch('videos', { part: 'snippet,statistics,contentDetails', id });
     return data.items?.[0] || null;
   },
 
-  getChannelsByIds: async (ids: string): Promise<YouTubeChannel[]> => {
-    if (!ids) return [];
+  getChannelsByIds: async (ids: string) => {
     const data = await youtubeApi.safeFetch('channels', { part: 'snippet,statistics,contentDetails,brandingSettings', id: ids });
     return data.items || [];
   },
 
-  getChannelVideos: async (playlistId: string, maxResults: number = 50): Promise<YouTubeVideo[]> => {
+  getChannelVideos: async (playlistId: string, maxResults: number = 50) => {
     const data = await youtubeApi.safeFetch('playlistItems', { part: 'snippet,contentDetails', maxResults, playlistId });
     const videoIds = data.items?.map((v: any) => v.contentDetails?.videoId).join(',') || '';
     if (!videoIds) return [];
