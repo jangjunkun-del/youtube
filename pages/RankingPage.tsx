@@ -9,10 +9,13 @@ const RankingPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   const [videoType, setVideoType] = useState<'any' | 'medium' | 'short'>('any');
 
-  const { data: videos, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['efficiencyRanking', pageSize, videoType],
     queryFn: () => youtubeApi.getSuccessVideos('', pageSize, 7, videoType),
   });
+
+  // data가 객체 형태이므로 items 배열을 안전하게 추출
+  const videos = data?.items || [];
 
   const formatNumber = (num: string | number) => {
     const n = typeof num === 'string' ? parseInt(num) : num;
@@ -85,7 +88,7 @@ const RankingPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y dark:divide-white/5">
-                  {videos?.map((video, idx) => {
+                  {videos.map((video: any, idx: number) => {
                     const perf = (1200 - idx * 18 + Math.random() * 40).toFixed(1);
                     return (
                       <tr key={video.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
@@ -125,7 +128,7 @@ const RankingPage: React.FC = () => {
             </div>
           </div>
 
-          {videos && videos.length >= pageSize && (
+          {videos.length >= pageSize && (
             <div className="flex justify-center">
               <button 
                 onClick={() => setPageSize(prev => prev + 20)}
