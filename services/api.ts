@@ -67,26 +67,15 @@ export const youtubeApi = {
     
     if (db && result.items.length > 0 && !pageToken) {
       try {
-        // 400 에러 방지를 위해 존재 여부 확인 후 분기 처리
-        const { data: existing } = await db.from('success_videos').select('category').eq('category', catKey).maybeSingle();
+        // id 컬럼에 고유값(catKey)을 직접 할당하여 null 에러 해결
+        const { error: upsertError } = await db.from('success_videos').upsert({
+          id: catKey,
+          category: catKey,
+          data: result,
+          created_at: new Date().toISOString()
+        });
         
-        let error;
-        if (existing) {
-          const { error: updateError } = await db.from('success_videos').update({
-            data: result,
-            updated_at: new Date().toISOString()
-          }).eq('category', catKey);
-          error = updateError;
-        } else {
-          const { error: insertError } = await db.from('success_videos').insert({
-            category: catKey,
-            data: result,
-            updated_at: new Date().toISOString()
-          });
-          error = insertError;
-        }
-        
-        if (error) console.error("DB Save Error (success_videos):", error);
+        if (upsertError) console.error("DB Save Error (success_videos):", upsertError);
         else console.log(`💾 Success Videos Saved to DB: ${catKey}`);
       } catch (e) {
         console.error("DB Save Exception (success_videos):", e);
@@ -115,19 +104,13 @@ export const youtubeApi = {
     const result = await youtubeApi.search(cleanKeyword, 'video', 'viewCount', pageSize, 7);
     if (db && result.items.length > 0) {
       try {
-        const { data: existing } = await db.from('views_analysis').select('keyword').eq('keyword', cleanKeyword).maybeSingle();
-        if (existing) {
-          await db.from('views_analysis').update({
-            data: result,
-            updated_at: new Date().toISOString()
-          }).eq('keyword', cleanKeyword);
-        } else {
-          await db.from('views_analysis').insert({
-            keyword: cleanKeyword,
-            data: result,
-            updated_at: new Date().toISOString()
-          });
-        }
+        // views_analysis 테이블의 id가 있다면 동일하게 처리
+        await db.from('views_analysis').upsert({
+          id: cleanKeyword,
+          keyword: cleanKeyword,
+          data: result,
+          updated_at: new Date().toISOString()
+        });
       } catch (e) {}
     }
     return result;
@@ -158,26 +141,15 @@ export const youtubeApi = {
     
     if (db && result.items.length > 0) {
       try {
-        // rank_type 컬럼에 Unique 제약 조건이 없어도 400 에러 없이 작동하도록 분기 처리
-        const { data: existing } = await db.from('channel_rankings').select('rank_type').eq('rank_type', type).maybeSingle();
+        // id 컬럼에 고유값(type)을 직접 할당하여 null 에러 해결
+        const { error: upsertError } = await db.from('channel_rankings').upsert({
+          id: type,
+          rank_type: type,
+          data: result,
+          updated_at: new Date().toISOString()
+        });
         
-        let error;
-        if (existing) {
-          const { error: updateError } = await db.from('channel_rankings').update({
-            data: result,
-            updated_at: new Date().toISOString()
-          }).eq('rank_type', type);
-          error = updateError;
-        } else {
-          const { error: insertError } = await db.from('channel_rankings').insert({
-            rank_type: type,
-            data: result,
-            updated_at: new Date().toISOString()
-          });
-          error = insertError;
-        }
-        
-        if (error) console.error("DB Save Error (channel_rankings):", error);
+        if (upsertError) console.error("DB Save Error (channel_rankings):", upsertError);
         else console.log(`💾 Performance Rankings Saved: ${type}`);
       } catch (e) {
         console.error("DB Save Exception (channel_rankings):", e);
