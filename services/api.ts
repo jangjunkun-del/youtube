@@ -18,6 +18,7 @@ const getUserApiKey = () => localStorage.getItem('user_youtube_api_key');
  * ISO 8601 재생 시간 포맷(PT#H#M#S)을 초 단위로 변환합니다.
  */
 const parseISO8601Duration = (duration: string): number => {
+  if (!duration) return 0;
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!match) return 0;
   const h = parseInt(match[1] || '0');
@@ -57,7 +58,8 @@ export const youtubeApi = {
 
   getSuccessVideos: async (category: string = '', maxResults: number = 24, days: number = 30, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
     const db = await getSupabase();
-    const catKey = `${category || 'all_trending'}_${duration}`;
+    // 캐시 키에 duration 정보를 포함하여 필터별로 다른 데이터를 저장하도록 합니다.
+    const catKey = `success_${category || 'all'}_${duration}`;
     
     try {
       if (db && !pageToken) {
@@ -89,7 +91,7 @@ export const youtubeApi = {
 
   getViewsAnalysis: async (keyword: string, pageSize: number = 24, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
     const db = await getSupabase();
-    const cleanKeyword = `${keyword || 'default_trending'}_${duration}`;
+    const cleanKeyword = `views_${keyword || 'trend'}_${duration}`;
     
     try {
       if (db && !pageToken) {
@@ -120,6 +122,7 @@ export const youtubeApi = {
 
   getChannelRankings: async (rankType: string, limit: number = 20, pageToken?: string) => {
     const db = await getSupabase();
+    // rankType에 이미 duration 정보가 포함되어 있음 (예: performance_medium)
     const type = rankType || 'performance_any';
     
     try {
@@ -135,7 +138,7 @@ export const youtubeApi = {
       }
     } catch (e) {}
 
-    const duration: any = type.includes('short') ? 'short' : type.includes('medium') ? 'medium' : 'any';
+    const duration: any = type.includes('short') ? 'short' : (type.includes('medium') || type.includes('long')) ? 'medium' : 'any';
     const searchQuery = duration === 'short' ? "인기 쇼츠" : "인기 영상 인기 급상승";
     const result = await youtubeApi.search(searchQuery, 'video', 'viewCount', limit, 7, duration, pageToken);
     
@@ -157,7 +160,7 @@ export const youtubeApi = {
     let enhancedQuery = cleanQuery;
     let apiVideoDuration: string | undefined = undefined;
 
-    // 필터링 풀을 확보하기 위해 내부적으로는 항상 최대치(50개)를 요청합니다.
+    // 필터링 후에도 충분한 결과물을 확보하기 위해 내부적으로는 항상 최대 50개를 요청합니다.
     const searchBatchSize = (duration === 'any' || type === 'channel') ? Math.min(maxResults, 50) : 50;
 
     if (type === 'video') {
@@ -165,9 +168,9 @@ export const youtubeApi = {
         enhancedQuery += " #Shorts";
         apiVideoDuration = 'short'; // < 4 min
       } else if (duration === 'medium' || duration === 'long') {
-        // 롱폼 검색 시 쇼츠 관련 키워드를 마이너스 처리하여 검색 품질을 높입니다.
+        // 롱폼(60초 초과)을 찾을 때, YouTube API의 'medium' 파라미터는 4분 미만을 잘라버리므로 사용하지 않습니다.
+        // 대신 검색어에서 쇼츠를 마이너스(-) 처리하여 1차 필터링합니다.
         enhancedQuery += " -#shorts -shorts -쇼츠";
-        // YouTube API의 'medium'은 4분~20분만 포함하므로, 1분~4분 롱폼을 위해 'any'로 요청 후 수동 필터링합니다.
         apiVideoDuration = undefined; 
       }
     }
@@ -195,7 +198,7 @@ export const youtubeApi = {
       
       let finalItems = videoData.items || [];
 
-      // UX 기준 쇼츠(60초 이하)와 롱폼(60초 초과)을 엄격하게 분리합니다.
+      // 60초 기준 엄격한 수동 필터링
       if (duration === 'short') {
         finalItems = finalItems.filter((v: any) => {
           const sec = parseISO8601Duration(v.contentDetails.duration);
@@ -205,13 +208,13 @@ export const youtubeApi = {
         finalItems = finalItems.filter((v: any) => {
           const sec = parseISO8601Duration(v.contentDetails.duration);
           const title = (v.snippet.title || '').toLowerCase();
-          // 제목에 쇼츠가 명시된 경우도 한 번 더 제외합니다.
           const isShortsTag = title.includes('#shorts') || title.includes('shorts');
+          // 60초 초과이면서 제목에 쇼츠 태그가 없는 것만 롱폼으로 간주
           return sec > 60 && !isShortsTag;
         });
       }
 
-      // 사용자가 요청한 개수만큼만 잘라서 반환합니다.
+      // 사용자가 요청한 개수(maxResults)만큼 잘라서 반환
       return { items: finalItems.slice(0, maxResults), nextPageToken };
     } else {
       const channelIds = items.map((c: any) => c.id.channelId).filter(Boolean).join(',');
