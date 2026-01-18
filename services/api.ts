@@ -3,7 +3,7 @@ import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 import { getSupabase } from './supabase.ts';
 
 const PROXY_PATH = '/api/proxy'; 
-const CACHE_EXPIRATION_MS = 4 * 60 * 60 * 1000;
+const CACHE_EXPIRATION_MS = 4 * 60 * 60 * 1000; // 4시간 캐시
 
 const isCacheValid = (updatedAt: string | null) => {
   if (!updatedAt) return false;
@@ -48,10 +48,9 @@ export const youtubeApi = {
     }
   },
 
-  // 스크린샷의 success_videos (id, category, data, created_at) 구조 반영
   getSuccessVideos: async (category: string = '', maxResults: number = 24, days: number = 30, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
+    const db = await getSupabase();
     try {
-      const db = await getSupabase();
       if (db) {
         let query = db.from('success_videos')
           .select('data, created_at')
@@ -66,22 +65,34 @@ export const youtubeApi = {
         }
       }
     } catch (e) {
-      console.warn("DB Cache fallback to API");
+      console.warn("DB Read Error:", e);
     }
-    return youtubeApi.search(category ? `${category} 인기 영상` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
+
+    // API 호출 후 DB에 저장
+    const result = await youtubeApi.search(category ? `${category} 인기 영상` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
+    
+    if (db && result.items.length > 0 && !pageToken) {
+      const rows = result.items.map((item: any) => ({
+        category: category || 'trending',
+        data: item
+      }));
+      // 기존 카테고리 데이터 삭제 후 새 데이터 삽입 (최신화)
+      await db.from('success_videos').delete().eq('category', category || 'trending');
+      await db.from('success_videos').insert(rows);
+    }
+
+    return result;
   },
 
-  // 조회수 분석 전용 (신규 생성 권장되는 views_analysis 테이블 대응)
   getViewsAnalysis: async (keyword: string, pageSize: number = 24) => {
+    const db = await getSupabase();
     try {
-      const db = await getSupabase();
       if (db) {
         const { data, error } = await db.from('views_analysis')
           .select('data, updated_at')
           .eq('keyword', keyword)
           .single();
         
-        // 스크린샷의 updated_at 컬럼 기준 유효성 검사
         if (!error && data && isCacheValid(data.updated_at)) {
           return data.data;
         }
@@ -89,13 +100,22 @@ export const youtubeApi = {
     } catch (e) {}
     
     const result = await youtubeApi.search(keyword, 'video', 'viewCount', pageSize, 7);
+
+    // API 호출 결과를 DB에 저장 (Upsert)
+    if (db && result.items.length > 0) {
+      await db.from('views_analysis').upsert({
+        keyword: keyword,
+        data: result,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'keyword' });
+    }
+
     return result;
   },
 
-  // 스크린샷의 channel_rankings (id, rank_type, data, updated_at) 활용 로직
   getChannelRankings: async (rankType: string, limit: number = 10) => {
+    const db = await getSupabase();
     try {
-      const db = await getSupabase();
       if (db) {
         const { data, error } = await db.from('channel_rankings')
           .select('data, updated_at')
@@ -108,6 +128,9 @@ export const youtubeApi = {
         }
       }
     } catch (e) {}
+
+    // 랭킹 데이터는 현재 Mock 데이터이거나 실시간 계산이 필요하므로 
+    // 여기서는 DB 저장 로직만 구조적으로 열어둡니다.
     return null;
   },
 
