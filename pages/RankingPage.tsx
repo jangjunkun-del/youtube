@@ -1,21 +1,28 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { youtubeApi } from '../services/api';
 import { Trophy, TrendingUp, Loader2, Sparkles, HelpCircle, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const RankingPage: React.FC = () => {
-  const [pageSize, setPageSize] = useState(20);
   const [videoType, setVideoType] = useState<'any' | 'medium' | 'short'>('any');
 
-  // 성능 랭킹 전용 API 호출 (channel_rankings 테이블 연동)
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['performanceRanking', pageSize, videoType],
-    queryFn: () => youtubeApi.getChannelRankings(`performance_${videoType}`, pageSize),
+  const { 
+    data, 
+    isLoading, 
+    isFetchingNextPage, 
+    fetchNextPage, 
+    hasNextPage 
+  } = useInfiniteQuery({
+    queryKey: ['performanceRankingInfinite', videoType],
+    queryFn: ({ pageParam }) => youtubeApi.getChannelRankings(`performance_${videoType}`, 20, pageParam as string),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.nextPageToken || undefined,
+    retry: false,
   });
 
-  const videos = data?.items || [];
+  const videos = data?.pages.flatMap(page => page.items) || [];
 
   const formatNumber = (num: string | number) => {
     const n = typeof num === 'string' ? parseInt(num) : num;
@@ -90,7 +97,7 @@ const RankingPage: React.FC = () => {
                   {videos.map((video: any, idx: number) => {
                     const perf = (1200 - idx * 18 + Math.random() * 40).toFixed(1);
                     return (
-                      <tr key={video.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
+                      <tr key={`${video.id}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group">
                         <td className="px-10 py-8">
                           <span className={`text-2xl font-black ${idx < 3 ? 'text-red-600' : 'text-slate-300 dark:text-slate-700'}`}>
                             {(idx + 1).toString().padStart(2, '0')}
@@ -127,14 +134,14 @@ const RankingPage: React.FC = () => {
             </div>
           </div>
 
-          {videos.length >= pageSize && (
+          {hasNextPage && videos.length < 100 && (
             <div className="flex justify-center">
               <button 
-                onClick={() => setPageSize(prev => prev + 20)}
-                disabled={isFetching}
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
                 className="group flex items-center gap-3 bg-white dark:bg-[#1a1a1a] border dark:border-white/5 px-10 py-4 rounded-2xl shadow-sm hover:shadow-xl transition-all active:scale-95 disabled:opacity-50"
               >
-                {isFetching ? (
+                {isFetchingNextPage ? (
                   <Loader2 className="animate-spin text-red-600" size={20} />
                 ) : (
                   <ChevronDown className="text-red-600 group-hover:translate-y-1 transition-transform" size={20} />
