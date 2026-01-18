@@ -3,6 +3,18 @@ import { YouTubeChannel, YouTubeVideo } from '../types.ts';
 import { getSupabase } from './supabase.ts';
 
 const PROXY_PATH = '/api/proxy'; 
+// 캐시 유효 기간: 4시간 (4 * 60 * 60 * 1000 ms)
+const CACHE_EXPIRATION_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * 데이터가 유효한지(4시간 이내인지) 확인합니다.
+ */
+const isCacheValid = (updatedAt: string | null) => {
+  if (!updatedAt) return false;
+  const lastUpdate = new Date(updatedAt).getTime();
+  const now = new Date().getTime();
+  return now - lastUpdate < CACHE_EXPIRATION_MS;
+};
 
 /**
  * 로컬스토리지에서 사용자 개인 API 키를 가져옵니다.
@@ -20,12 +32,9 @@ export const youtubeApi = {
 
     let url: string;
     if (userKey) {
-      // [보안 핵심] 사용자 키가 있으면 구글 API 서버로 직접 요청합니다.
-      // 이 요청은 서버(Cloudflare)를 절대 거치지 않으며 브라우저 네트워크 탭에서 확인 가능합니다.
       queryParams.append('key', userKey);
       url = `https://www.googleapis.com/youtube/v3/${endpoint}?${queryParams.toString()}`;
     } else {
-      // 사용자 키가 없으면 서버 프록시를 통해 서버 공유 키를 소모합니다.
       queryParams.append('path', endpoint);
       url = `${PROXY_PATH}?${queryParams.toString()}`;
     }
@@ -51,12 +60,23 @@ export const youtubeApi = {
     try {
       const db = await getSupabase();
       if (db) {
-        let query = db.from('success_videos').select('data').eq('video_type', duration).order('created_at', { ascending: false }).limit(maxResults);
+        let query = db.from('success_videos')
+          .select('data, created_at')
+          .eq('video_type', duration)
+          .order('created_at', { ascending: false })
+          .limit(maxResults);
+        
         if (category) query = query.eq('category', category);
+        
         const { data: dbData, error } = await query;
-        if (!error && dbData && dbData.length > 0) return { items: dbData.map((d: any) => d.data), nextPageToken: null };
+        // DB에 데이터가 있고, 가장 최신 데이터가 4시간 이내라면 캐시 사용
+        if (!error && dbData && dbData.length > 0 && isCacheValid(dbData[0].created_at)) {
+          return { items: dbData.map((d: any) => d.data), nextPageToken: null };
+        }
       }
     } catch (e) {}
+    
+    // 캐시가 없거나 만료된 경우 API 호출
     return youtubeApi.search(category ? `${category} 인기 영상` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
   },
 
@@ -64,11 +84,34 @@ export const youtubeApi = {
     try {
       const db = await getSupabase();
       if (db) {
-        const { data, error } = await db.from('views_analysis').select('data').eq('keyword', keyword).single();
-        if (!error && data) return data.data;
+        const { data, error } = await db.from('views_analysis')
+          .select('data, updated_at')
+          .eq('keyword', keyword)
+          .single();
+        
+        // 데이터가 존재하고 4시간 이내라면 반환
+        if (!error && data && isCacheValid(data.updated_at)) {
+          return data.data;
+        }
       }
     } catch (e) {}
-    return youtubeApi.search(keyword, 'video', 'viewCount', pageSize, 7);
+    
+    // 데이터가 없거나 4시간이 지났으면 새로 가져옴
+    const result = await youtubeApi.search(keyword, 'video', 'viewCount', pageSize, 7);
+    
+    try {
+      const db = await getSupabase();
+      if (db && result.items.length > 0) {
+        // 최신 데이터로 업데이트 (Overwrite)
+        await db.from('views_analysis').upsert({
+          keyword: keyword,
+          data: result,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (e) {}
+    
+    return result;
   },
 
   search: async (query: string, type: 'channel' | 'video', order: string = 'relevance', maxResults: number = 20, days?: number, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
@@ -114,10 +157,14 @@ export const youtubeApi = {
       const db = await getSupabase();
       if (db) {
         const { data: cached } = await db.from('channels_cache')
-          .select('data')
+          .select('data, updated_at')
           .or(`id.eq."${identifier}",custom_url.eq."${identifier.startsWith('@') ? identifier : '@' + identifier}"`)
           .single();
-        if (cached) return cached.data;
+        
+        // 캐시 데이터가 유효하면 즉시 반환
+        if (cached && isCacheValid(cached.updated_at)) {
+          return cached.data;
+        }
       }
     } catch (e) {}
 
