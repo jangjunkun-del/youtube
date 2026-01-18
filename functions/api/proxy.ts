@@ -8,10 +8,13 @@ export async function onRequest(context: { request: Request, env: { YOUTUBE_API_
   const path = searchParams.get('path');
   
   if (!path) {
-    return new Response(JSON.stringify({ error: 'Missing path' }), { status: 400 });
+    return new Response(JSON.stringify({ error: 'Missing path parameter' }), { 
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
-  // 1. DB 설정 요청 처리 (통합 엔드포인트)
+  // 1. DB 설정 요청 처리
   if (path === 'supabase-config') {
     return new Response(JSON.stringify({
       supabaseUrl: context.env.SUPABASE_URL || '',
@@ -27,7 +30,10 @@ export async function onRequest(context: { request: Request, env: { YOUTUBE_API_
   // 2. 유튜브 API Key 확인
   const apiKey = context.env.YOUTUBE_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API Key not configured in server environment' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'YouTube API Key is missing in server environment variables.' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   // 유튜브 API 파라미터 구성
@@ -49,9 +55,12 @@ export async function onRequest(context: { request: Request, env: { YOUTUBE_API_
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Failed to fetch from YouTube API' }), { 
+    return new Response(JSON.stringify({ error: 'Failed to fetch from YouTube API', details: String(error) }), { 
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     });
   }
 }
