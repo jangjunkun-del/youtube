@@ -27,6 +27,16 @@ const parseISO8601Duration = (duration: string): number => {
   return h * 3600 + m * 60 + s;
 };
 
+/**
+ * 제목이나 설명에 쇼츠 관련 태그가 포함되어 있는지 확인합니다.
+ */
+const isShortsContent = (title: string, durationSec: number): boolean => {
+  const t = (title || '').toLowerCase();
+  const hasTag = t.includes('#shorts') || t.includes('shorts') || t.includes('쇼츠');
+  // 60초 이하이거나 제목에 쇼츠 태그가 있으면 쇼츠로 간주
+  return durationSec <= 60 || hasTag;
+};
+
 export const youtubeApi = {
   safeFetch: async (endpoint: string, params: Record<string, any> = {}) => {
     const userKey = getUserApiKey();
@@ -58,7 +68,6 @@ export const youtubeApi = {
 
   getSuccessVideos: async (category: string = '', maxResults: number = 24, days: number = 30, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
     const db = await getSupabase();
-    // 캐시 키에 duration 정보를 포함하여 필터별로 다른 데이터를 저장하도록 합니다.
     const catKey = `success_${category || 'all'}_${duration}`;
     
     try {
@@ -69,12 +78,14 @@ export const youtubeApi = {
           .limit(1);
         
         if (!dbError && dbData && dbData.length > 0 && isCacheValid(dbData[0].updated_at)) {
-          return dbData[0].data;
+          if (dbData[0].data && dbData[0].data.items && dbData[0].data.items.length > 0) {
+            return dbData[0].data;
+          }
         }
       }
     } catch (e) {}
 
-    const result = await youtubeApi.search(category ? `${category} 인기` : "인기 급상승", 'video', 'viewCount', maxResults, days, duration, pageToken);
+    const result = await youtubeApi.search(category ? `${category} 인기` : "인기 영상", 'video', 'viewCount', maxResults, days, duration, pageToken);
     
     if (db && result.items.length > 0 && !pageToken) {
       try {
@@ -122,7 +133,6 @@ export const youtubeApi = {
 
   getChannelRankings: async (rankType: string, limit: number = 20, pageToken?: string) => {
     const db = await getSupabase();
-    // rankType에 이미 duration 정보가 포함되어 있음 (예: performance_medium)
     const type = rankType || 'performance_any';
     
     try {
@@ -133,7 +143,9 @@ export const youtubeApi = {
           .limit(1);
         
         if (!dbError && dbData && dbData.length > 0 && isCacheValid(dbData[0].updated_at)) {
-          return dbData[0].data;
+          if (dbData[0].data && dbData[0].data.items && dbData[0].data.items.length > 0) {
+            return dbData[0].data;
+          }
         }
       }
     } catch (e) {}
@@ -155,22 +167,20 @@ export const youtubeApi = {
     return result;
   },
 
-  search: async (query: string, type: 'channel' | 'video', order: string = 'relevance', maxResults: number = 20, days?: number, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string) => {
+  search: async (query: string, type: 'channel' | 'video', order: string = 'relevance', maxResults: number = 20, days?: number, duration: 'any' | 'short' | 'medium' | 'long' = 'any', pageToken?: string, forceApiDuration?: string) => {
     let cleanQuery = query.trim() || "인기";
     let enhancedQuery = cleanQuery;
-    let apiVideoDuration: string | undefined = undefined;
+    let apiVideoDuration: string | undefined = forceApiDuration;
 
-    // 필터링 후에도 충분한 결과물을 확보하기 위해 내부적으로는 항상 최대 50개를 요청합니다.
-    const searchBatchSize = (duration === 'any' || type === 'channel') ? Math.min(maxResults, 50) : 50;
+    // 내부 검색 배치를 최대치(50)로 설정하여 필터링 가용 풀을 확보합니다.
+    const searchBatchSize = (type === 'video' && duration !== 'any') ? 50 : Math.min(maxResults, 50);
 
-    if (type === 'video') {
+    if (type === 'video' && !forceApiDuration) {
       if (duration === 'short') {
-        enhancedQuery += " #Shorts";
-        apiVideoDuration = 'short'; // < 4 min
+        apiVideoDuration = 'short'; // API 레벨에서 4분 미만 필터링
       } else if (duration === 'medium' || duration === 'long') {
-        // 롱폼(60초 초과)을 찾을 때, YouTube API의 'medium' 파라미터는 4분 미만을 잘라버리므로 사용하지 않습니다.
-        // 대신 검색어에서 쇼츠를 마이너스(-) 처리하여 1차 필터링합니다.
-        enhancedQuery += " -#shorts -shorts -쇼츠";
+        // 롱폼 검색 시 쇼츠 키워드 제외 시도
+        enhancedQuery = enhancedQuery.replace(/#shorts|shorts|쇼츠/gi, '').trim() + " -shorts";
         apiVideoDuration = undefined; 
       }
     }
@@ -198,23 +208,26 @@ export const youtubeApi = {
       
       let finalItems = videoData.items || [];
 
-      // 60초 기준 엄격한 수동 필터링
+      // 60초 기준 엄격 필터링
       if (duration === 'short') {
         finalItems = finalItems.filter((v: any) => {
           const sec = parseISO8601Duration(v.contentDetails.duration);
-          return sec > 0 && sec <= 60;
+          return isShortsContent(v.snippet.title, sec);
         });
       } else if (duration === 'medium' || duration === 'long') {
         finalItems = finalItems.filter((v: any) => {
           const sec = parseISO8601Duration(v.contentDetails.duration);
-          const title = (v.snippet.title || '').toLowerCase();
-          const isShortsTag = title.includes('#shorts') || title.includes('shorts');
-          // 60초 초과이면서 제목에 쇼츠 태그가 없는 것만 롱폼으로 간주
-          return sec > 60 && !isShortsTag;
+          // 60초 초과이면서 쇼츠 관련 속성이 전혀 없는 것만 롱폼으로 간주
+          return sec > 60 && !isShortsContent(v.snippet.title, sec);
         });
+
+        // 중요: 필터링 결과 롱폼이 하나도 없다면, API의 'medium' 필터(4~20분)를 사용하여 강제 재조회합니다.
+        if (finalItems.length === 0 && !forceApiDuration && !pageToken) {
+          console.log("No long-form found in 'any' search, retrying with API duration filter...");
+          return youtubeApi.search(query, type, order, maxResults, days, duration, pageToken, 'medium');
+        }
       }
 
-      // 사용자가 요청한 개수(maxResults)만큼 잘라서 반환
       return { items: finalItems.slice(0, maxResults), nextPageToken };
     } else {
       const channelIds = items.map((c: any) => c.id.channelId).filter(Boolean).join(',');
